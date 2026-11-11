@@ -2,6 +2,10 @@ set(srcs
     "app_main.c"
     "app_state.c"
     "processes/net_task.c"
+    "processes/pipeline.c"
+    "processes/trigger_manager.c"
+    "processes/capture_task.c"
+    "processes/analysis_task.c"
 )
 if(CONFIG_MG_DEBUG_HTTP)
     list(APPEND srcs "debug/debug_http.c")

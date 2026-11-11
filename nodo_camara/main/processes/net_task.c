@@ -206,12 +206,15 @@ static void handle_cmd(const char *json, size_t len)
         return;
     }
 
-    net_task_send_ack(cmd.cmd_id, MG_ACK_ACCEPTED, NULL);
+    /* El handler decide primero (debe ser breve): así un rechazo nunca va precedido de "accepted". */
     char motivo[64] = "";
     err = h(&cmd, motivo, sizeof(motivo));
-    if (err == ESP_OK) {
-        net_task_send_ack(cmd.cmd_id, MG_ACK_DONE, motivo[0] ? motivo : NULL);
-    } else if (err != ESP_ERR_NOT_FINISHED) {
+    if (err == ESP_OK || err == ESP_ERR_NOT_FINISHED) {
+        net_task_send_ack(cmd.cmd_id, MG_ACK_ACCEPTED, NULL);
+        if (err == ESP_OK) {
+            net_task_send_ack(cmd.cmd_id, MG_ACK_DONE, motivo[0] ? motivo : NULL);
+        }
+    } else {
         net_task_send_ack(cmd.cmd_id, MG_ACK_REJECTED, motivo[0] ? motivo : esp_err_to_name(err));
     }
     mg_cmd_free(&cmd);
@@ -274,10 +277,12 @@ static void net_task(void *arg)
         }
         switch (m.type) {
         case NET_MSG_CONNECTED:
-            if (app_state_get_estado() != MG_ESTADO_ERROR) {  // un error de hardware no se borra por reconectar
-                app_state_set_estado(MG_ESTADO_OPERATIVO);
+            /* Siempre se publica al conectar (pisa el LWT retenido). Si el estado cambia,
+             * app_state ya encoló la publicación; si no, se publica acá. */
+            if (app_state_get_estado() == MG_ESTADO_ERROR ||  // un error de hardware no se borra por reconectar
+                !app_state_set_estado(MG_ESTADO_OPERATIVO)) {
+                publish_status();
             }
-            publish_status();  // siempre al conectar: pisa el LWT retenido
             break;
         case NET_MSG_DISCONNECTED:
             if (app_state_get_estado() != MG_ESTADO_ERROR) {

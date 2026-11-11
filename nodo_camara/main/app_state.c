@@ -19,7 +19,7 @@ void app_state_init(void)
     s_ultima_captura = 0;
 }
 
-void app_state_set_estado(mg_estado_nodo_t estado)
+bool app_state_set_estado(mg_estado_nodo_t estado)
 {
     taskENTER_CRITICAL(&s_mux);
     bool changed = s_estado != estado;
@@ -30,6 +30,7 @@ void app_state_set_estado(mg_estado_nodo_t estado)
         ESP_LOGI(TAG, "estado_nodo → %s", mg_estado_nodo_str(estado));
         net_task_request_status();
     }
+    return changed;
 }
 
 mg_estado_nodo_t app_state_get_estado(void)

@@ -14,6 +14,14 @@
 #define SYS_CORE_APP   1
 
 /* Pilas y prioridades iniciales: ajustar midiendo con uxTaskGetStackHighWaterMark. */
+/* Pipeline (núcleo 1): captura alta, disparos y análisis media. */
+#define SYS_CAPTURE_STACK      4096
+#define SYS_CAPTURE_PRIO       6
+#define SYS_TRIGGER_STACK      3584
+#define SYS_TRIGGER_PRIO       5
+#define SYS_ANALYSIS_STACK     8192   /* C7: decodificación JPEG + HSV */
+#define SYS_ANALYSIS_PRIO      4
+
 #define SYS_NET_TASK_STACK     6144
 #define SYS_NET_TASK_PRIO      5
 #define SYS_DEBUG_HTTP_STACK   8192

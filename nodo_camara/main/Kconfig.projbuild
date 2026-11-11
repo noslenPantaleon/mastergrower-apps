@@ -24,6 +24,38 @@ menu "MasterGrow - Nodo de cámara"
         help
             QVGA, VGA, SVGA, XGA, HD, SXGA, UXGA o QXGA. Luego la reemplaza la config remota.
 
+    config MG_CAPTURE_RES_FULL
+        string "Resolución completa (eventos, post-actuación, comandos)"
+        default "UXGA"
+
+    config MG_CAPTURE_INTERVAL_MIN
+        int "Intervalo de captura rutinaria (min)"
+        default 120
+        range 1 1440
+        help
+            Contrato §7: intervalo_captura_min. Para probar, bajarlo a 1.
+
+    config MG_LIGHT_WINDOW_START
+        string "Inicio de la ventana de luz (HH:MM, hora local)"
+        default "06:00"
+
+    config MG_LIGHT_WINDOW_END
+        string "Fin de la ventana de luz (HH:MM, hora local; 00:00 = medianoche)"
+        default "00:00"
+
+    config MG_UTC_OFFSET_MIN
+        int "Diferencia de la hora local con UTC (min)"
+        default -180
+        range -720 840
+        help
+            Argentina: -180 (UTC-3). Se usa solo para evaluar la ventana de luz;
+            todas las marcas de tiempo se publican en UTC.
+
+    config MG_TRIGGER_MIN_INTERVAL_S
+        int "Intervalo mínimo entre disparos (s), anti-duplicado"
+        default 5
+        range 0 3600
+
     config MG_CAPTURE_JPEG_QUALITY
         int "Calidad JPEG (0-63, menor es mejor)"
         default 12

@@ -61,6 +61,12 @@ Idioma de trabajo: español (código con identificadores en inglés; comentarios
       `net_task`: status retenido + LWT, cmd → ack accepted/done/rejected, cmd_id repetidos, vigencia 60 s.
       Probado en placa salvo el arreglo de NTP (grabar y confirmar que `ts` ya no sale en 1970).
       `mg_settings` (NVS) se pospone a C6. Handlers actuales: capture_now (captura directa) y reboot.
-- [ ] **C3** (siguiente) — trigger_manager + capture_task + colas; capture_now pasa a ser asíncrono.
-- [ ] C4 SD store-and-forward · C5 subida HTTP · C6 config remota ·
+- [x] **C3** — pipeline en `main/processes/`: trigger_manager (timer en ventana de luz con offset UTC,
+      prioridad alta → UXGA al frente de la cola, anti-duplicado 5 s) → capture_task (copia JPEG a PSRAM y
+      libera el fb) → q_frame → analysis_task (pasa de largo hasta C7) → pipeline_job_done (log + free; en C4 → SD).
+      capture_now es asíncrono: el ack "done" lo manda capture_task. net_task llama al handler ANTES de
+      responder, así un rechazo nunca va precedido de "accepted". Probado en placa.
+      `sdkconfig.defaults.local` del usuario tiene CONFIG_MG_CAPTURE_INTERVAL_MIN=1 para pruebas.
+- [ ] **C4** (siguiente) — microSD (SPI, GPIO21 CS) + storage_queue store-and-forward; sd_libre_pct en status.
+- [ ] C5 subida HTTP · C6 config remota ·
       C7 análisis HSV · C8 vista en vivo · C9 extras. Luego nodo de pantalla D0–D6.

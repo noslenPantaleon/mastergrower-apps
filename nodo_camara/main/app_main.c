@@ -7,6 +7,7 @@
  * (trigger_manager, capture_task, analysis_task, upload_task, ...).
  */
 #include <inttypes.h>
+#include <string.h>
 #include "esp_app_desc.h"
 #include "esp_event.h"
 #include "esp_heap_caps.h"
@@ -24,7 +25,11 @@
 #include "hal_camera.h"
 #include "mg_time.h"
 #include "mg_wifi.h"
+#include "processes/analysis_task.h"
+#include "processes/capture_task.h"
 #include "processes/net_task.h"
+#include "processes/pipeline.h"
+#include "processes/trigger_manager.h"
 #include "system_config.h"
 
 #if CONFIG_MG_DEBUG_HTTP
@@ -111,23 +116,46 @@ static void camera_selftest(int n)
 
 /* ------------------------------------------------------------------ comandos (C2) */
 
+static bool s_pipeline_ok;
+
 /**
- * capture_now: por ahora captura en el momento y registra el resultado.
- * En C3 pasa a encolar un disparo comando_remoto en el trigger_manager (respuesta asíncrona).
+ * capture_now → disparo comando_remoto en el trigger_manager. El ack "done" lo envía
+ * capture_task cuando la captura termina (respuesta asíncrona).
  */
 static esp_err_t cmd_capture_now(const mg_cmd_t *cmd, char *motivo, size_t motivo_len)
 {
-    hal_frame_t f;
-    esp_err_t err = hal_camera_capture(&f, pdMS_TO_TICKS(3000));
-    if (err != ESP_OK) {
+    if (!s_pipeline_ok) {
         snprintf(motivo, motivo_len, "error_camara");
-        net_task_publish_event(MG_EVT_ERROR_CAMARA, MG_SEV_MEDIA, NULL, esp_err_to_name(err));
+        return ESP_ERR_INVALID_STATE;
+    }
+    trigger_req_t req = { .type = MG_TRIGGER_COMANDO_REMOTO };
+    strlcpy(req.cmd_id, cmd->cmd_id, sizeof(req.cmd_id));
+
+    const char *why = NULL;
+    esp_err_t err = trigger_request(&req, &why);
+    if (err != ESP_OK) {
+        snprintf(motivo, motivo_len, "%s", why ? why : esp_err_to_name(err));
         return err;
     }
-    ESP_LOGI(TAG, "capture_now: %ux%u, %u bytes", f.width, f.height, (unsigned)f.len);
-    hal_camera_release(&f);
-    app_state_set_ultima_captura(time(NULL));
-    return ESP_OK;
+    return ESP_ERR_NOT_FINISHED;
+}
+
+static esp_err_t start_pipeline(void)
+{
+    trigger_config_t tcfg;
+    trigger_config_default(&tcfg);
+
+    esp_err_t err = pipeline_init();
+    if (err == ESP_OK) {
+        err = analysis_task_start();
+    }
+    if (err == ESP_OK) {
+        err = capture_task_start();
+    }
+    if (err == ESP_OK) {
+        err = trigger_manager_start(&tcfg);
+    }
+    return err;
 }
 
 static void reboot_task(void *arg)
@@ -208,6 +236,14 @@ void app_main(void)
         log_memory("cámara lista");
         camera_selftest(CONFIG_MG_SELFTEST_CAPTURES);
         log_memory("autoprueba");
+
+        err = start_pipeline();
+        if (err != ESP_OK) {
+            ESP_LOGE(TAG, "Pipeline no iniciado: %s", esp_err_to_name(err));
+            app_state_set_estado(MG_ESTADO_ERROR);
+        } else {
+            s_pipeline_ok = true;
+        }
     }
 
     /* Si la cámara falló, el status publicado al conectar lleva estado_nodo=error. */

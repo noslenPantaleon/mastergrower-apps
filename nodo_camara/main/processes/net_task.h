@@ -16,7 +16,7 @@
  * Handler de un comando. Corre en la net_task: debe ser breve o delegar en otra tarea.
  * Retorno:
  *   ESP_OK               → se responde "done"
- *   ESP_ERR_NOT_FINISHED → solo "accepted"; el handler (u otra tarea) llamará net_task_send_ack(done)
+ *   ESP_ERR_NOT_FINISHED → solo "accepted"; otra tarea enviará luego net_task_send_ack(done)
  *   otro                 → "rejected" con el motivo escrito en `motivo`
  */
 typedef esp_err_t (*net_cmd_handler_t)(const mg_cmd_t *cmd, char *motivo, size_t motivo_len);

@@ -5,12 +5,14 @@
  */
 #pragma once
 
+#include <stdbool.h>
 #include <time.h>
 #include "mg_contract.h"
 
 void app_state_init(void);
 
-void app_state_set_estado(mg_estado_nodo_t estado);
+/** @return true si el estado cambió (en ese caso ya se pidió republicar el status). */
+bool app_state_set_estado(mg_estado_nodo_t estado);
 mg_estado_nodo_t app_state_get_estado(void);
 
 /** @brief Registra una captura exitosa (t = hora UTC de la captura). */
