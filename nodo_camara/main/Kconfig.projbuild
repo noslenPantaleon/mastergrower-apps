@@ -1,0 +1,40 @@
+menu "MasterGrow - Nodo de cámara"
+
+    config MG_NODE_ID
+        string "node_id"
+        default "cam-01"
+        help
+            Identificador único en el sistema (Contrato §3.1): cam-NN.
+
+    config MG_FIRMWARE_VERSION
+        string "Versión de firmware (se publica en status)"
+        default "0.1.0"
+
+    config MG_CAPTURE_RES
+        string "Resolución de captura rutinaria"
+        default "SVGA"
+        help
+            QVGA, VGA, SVGA, XGA, HD, SXGA, UXGA o QXGA. Luego la reemplaza la config remota.
+
+    config MG_CAPTURE_JPEG_QUALITY
+        int "Calidad JPEG (0-63, menor es mejor)"
+        default 12
+        range 4 63
+
+    config MG_SELFTEST_CAPTURES
+        int "Capturas de autoprueba al arrancar (0 = desactivada)"
+        default 10
+        range 0 1000
+
+    config MG_DEBUG_HTTP
+        bool "Servidor HTTP de depuración (/capture.jpg, /status, /control)"
+        default y
+        help
+            SOLO DESARROLLO: no tiene autenticación. Desactivar en producción.
+
+    config MG_DEBUG_HTTP_PORT
+        int "Puerto del servidor de depuración"
+        default 80
+        depends on MG_DEBUG_HTTP
+
+endmenu

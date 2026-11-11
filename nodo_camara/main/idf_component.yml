@@ -1,0 +1,5 @@
+dependencies:
+  idf: ">=6.0"
+  # Componentes compartidos del monorepo (raíz/components)
+  mg_wifi:
+    path: ../../components/mg_wifi

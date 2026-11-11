@@ -1,0 +1,38 @@
+menu "MasterGrow - Cámara (HAL)"
+
+    choice MG_CAMERA_MODEL
+        prompt "Sensor de cámara (camera_type)"
+        default MG_CAMERA_OV3660
+        help
+            Define el driver que se compila y el camera_type que el nodo declara.
+
+        config MG_CAMERA_OV3660
+            bool "xiao-ov3660 (XIAO ESP32-S3 Sense, integrada)"
+        config MG_CAMERA_OV5640
+            bool "xiao-ov5640 (módulo opcional, en validación)"
+    endchoice
+
+    config MG_CAMERA_XCLK_HZ
+        int "Frecuencia XCLK (Hz)"
+        default 20000000
+        help
+            20 MHz es lo habitual. Si aparecen errores de captura o imágenes cortadas, probar 10 MHz.
+
+    config MG_CAMERA_FB_COUNT
+        int "Cantidad de framebuffers (PSRAM)"
+        default 2
+        range 1 4
+        help
+            Con 2 o más, esp32-camera captura en modo continuo y entrega el cuadro más reciente.
+
+    config MG_CAMERA_VFLIP
+        bool "Invertir verticalmente"
+        default y
+        help
+            La OV3660 del XIAO sale invertida de fábrica; ajustar según el montaje.
+
+    config MG_CAMERA_HMIRROR
+        bool "Espejar horizontalmente"
+        default n
+
+endmenu

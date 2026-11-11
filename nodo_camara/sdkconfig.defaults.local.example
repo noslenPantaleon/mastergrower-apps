@@ -1,0 +1,5 @@
+# Copiar como sdkconfig.defaults.local (está en .gitignore) y completar.
+# Después: borrar sdkconfig y recompilar, o cargar los valores desde menuconfig.
+CONFIG_MG_WIFI_SSID="mi-red"
+CONFIG_MG_WIFI_PASSWORD="mi-clave"
+CONFIG_MG_NODE_ID="cam-01"

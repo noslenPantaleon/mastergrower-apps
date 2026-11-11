@@ -1,0 +1,4 @@
+version: "0.1.0"
+description: "MasterGrow - conexión WiFi STA con reconexión y backoff exponencial"
+dependencies:
+  idf: ">=5.3"

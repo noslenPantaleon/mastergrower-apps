@@ -1,0 +1,31 @@
+menu "MasterGrow - WiFi"
+
+    config MG_WIFI_SSID
+        string "SSID"
+        default ""
+        help
+            SSID de la red. No se versiona: va en sdkconfig o en sdkconfig.defaults.local.
+            Más adelante lo reemplaza el aprovisionamiento por BLE (credenciales en NVS).
+
+    config MG_WIFI_PASSWORD
+        string "Contraseña"
+        default ""
+
+    config MG_WIFI_BACKOFF_MIN_MS
+        int "Espera mínima antes de reintentar (ms)"
+        default 1000
+        range 100 60000
+
+    config MG_WIFI_BACKOFF_MAX_MS
+        int "Espera máxima entre reintentos (ms)"
+        default 60000
+        range 1000 600000
+
+    config MG_WIFI_POWER_SAVE
+        bool "Habilitar ahorro de energía (modem sleep)"
+        default n
+        help
+            Desactivado por defecto: el ahorro agrega latencia y baja el throughput
+            (subida de imágenes y vista en vivo).
+
+endmenu

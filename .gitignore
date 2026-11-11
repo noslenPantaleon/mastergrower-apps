@@ -1,0 +1,41 @@
+# ---------- SO / editores ----------
+.DS_Store
+Thumbs.db
+*~
+*.swp
+*.swo
+*.bak
+*.tmp
+*.log
+# Config local de VS Code (rutas absolutas por máquina)
+.vscode/
+.clangd/
+.cache/
+compile_commands.json
+
+# ---------- ESP-IDF (cualquier proyecto de firmware) ----------
+**/build/
+**/managed_components/
+**/sdkconfig
+**/sdkconfig.old
+**/dependencies.lock.*
+*.bin
+*.elf
+*.map
+# Configuración local sensible (credenciales WiFi/broker)
+**/sdkconfig.defaults.local
+**/credentials.h
+*.pem
+!contract/**/*.pem
+
+# ---------- Python / backend ----------
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.env
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+backend/data/

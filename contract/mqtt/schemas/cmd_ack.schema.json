@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://mastergrow.local/contract/mqtt/cmd_ack.schema.json",
+  "title": "growlab/{tipo}/{id}/cmd/ack",
+  "type": "object",
+  "required": ["schema_version", "node_id", "ts", "cmd_id", "resultado"],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "node_id": { "type": "string" },
+    "ts": { "type": "string", "format": "date-time" },
+    "cmd_id": { "type": "string" },
+    "resultado": { "enum": ["accepted", "rejected", "done"] },
+    "motivo": { "type": ["string", "null"] }
+  },
+  "additionalProperties": true,
+  "examples": [{ "schema_version": 1, "node_id": "cam-01", "ts": "2026-11-09T18:45:01Z", "cmd_id": "k-7f3a", "resultado": "accepted" }]
+}

@@ -1,0 +1,37 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://mastergrow.local/contract/mqtt/cmd.schema.json",
+  "title": "growlab/{tipo}/{id}/cmd",
+  "description": "node_id es el EMISOR del comando (p. ej. disp-01 o api).",
+  "type": "object",
+  "required": ["schema_version", "node_id", "ts", "accion", "cmd_id"],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "node_id": { "type": "string" },
+    "ts": { "type": "string", "format": "date-time" },
+    "cmd_id": { "type": "string", "minLength": 1, "maxLength": 64 },
+    "accion": {
+      "enum": ["capture_now", "refresh_config", "reboot", "start_stream", "stop_stream", "set_actuador", "set_modo"]
+    },
+    "parametros": { "type": "object" }
+  },
+  "allOf": [{
+    "if": { "properties": { "accion": { "const": "start_stream" } } },
+    "then": {
+      "required": ["parametros"],
+      "properties": { "parametros": {
+        "type": "object",
+        "required": ["session_id", "ws_publish_url", "resolucion", "fps_max", "ttl_s"],
+        "properties": {
+          "session_id": { "type": "string" },
+          "ws_publish_url": { "type": "string" },
+          "resolucion": { "enum": ["qvga", "vga"] },
+          "fps_max": { "type": "integer", "minimum": 1 },
+          "ttl_s": { "type": "integer", "minimum": 1 }
+        }
+      } }
+    }
+  }],
+  "additionalProperties": true,
+  "examples": [{ "schema_version": 1, "node_id": "disp-01", "ts": "2026-11-09T18:45:00Z", "accion": "capture_now", "cmd_id": "k-7f3a" }]
+}

@@ -1,0 +1,5 @@
+version: "0.1.0"
+description: "MasterGrow nodo cámara - capa de abstracción de hardware"
+dependencies:
+  idf: ">=5.3"
+  espressif/esp32-camera: "~2.1.9"
