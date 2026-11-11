@@ -22,9 +22,16 @@ Idioma de trabajo: español (código con identificadores en inglés; comentarios
 - ESP-IDF **v6.1** en `~/.espressif/v6.1/esp-idf`. Activar en cada shell:
   `source ~/.espressif/tools/activate_idf_v6.1.sh`
 - El XIAO aparece como `/dev/cu.usbmodem101`.
+- Backend: `cd backend && docker compose up -d --build` (Docker vía OrbStack: `~/.orbstack/bin/docker`).
+  Claves en `backend/.env` (gitignored, generadas al azar). Tests: `uv run pytest`, lint: `uv run ruff check .`
+- Ver tráfico MQTT: `backend/scripts/mqtt_ver.sh`. Enviar comando: `backend/scripts/cam_cmd.sh capture_now`.
+- La red del usuario NO responde NTP de pool.ntp.org por IPv4; time.google.com sí (es el primario).
+- El sandbox de Claude bloquea UDP desde Python: no sirve para probar NTP/DNS; usar `sntp` del sistema.
 - Compilar y grabar la cámara:
   `cd nodo_camara && idf.py -p /dev/cu.usbmodem101 build flash monitor`
-- Credenciales WiFi en `nodo_camara/sdkconfig.defaults.local` (gitignored). Tras editarlo: `rm sdkconfig`.
+- Credenciales WiFi y MQTT (broker = IP de la Mac, 192.168.100.182) en `nodo_camara/sdkconfig.defaults.local`
+  (gitignored). Tras editarlo: `rm sdkconfig`. Si el usuario tiene un `idf.py monitor` abierto, el puerto
+  queda ocupado: pedirle que lo cierre con Ctrl+] antes de grabar.
 - La extensión ESP-IDF de VS Code solo funciona abriendo la carpeta del nodo (`nodo_camara`), no la raíz.
 - En IDF 6.x, **mqtt, cjson y wifi_provisioning ya no vienen en IDF**: usar `espressif/mqtt`,
   `espressif/cjson`, `espressif/network_provisioning` del component registry.
@@ -48,8 +55,12 @@ Idioma de trabajo: español (código con identificadores en inglés; comentarios
 - [x] **Fase 0** — monorepo, git, `contract/` v1 (schemas status/event/cmd/cmd_ack), sdkconfig del XIAO, particiones OTA.
 - [x] **C1** — `node_hal` + OV3660 funcionando en la placa; `mg_wifi`; servidor de depuración
       (`/`, `/capture.jpg`, `/status`, `/control`). Medido: SVGA ≈35 ms / 14,5 KB; UXGA ≈39 ms / 57 KB.
-- [ ] **B0** — docker compose: Mosquitto (usuario/clave, sin TLS) + Postgres + esqueleto FastAPI `/api/v1/health`.
-- [ ] **C2** — `mg_mqtt` (sin TLS), `mg_time` (SNTP), `mg_settings` (NVS), `mg_contract` (cJSON);
-      `net_task`: status retenido + LWT, suscripción a `cmd`, `cmd/ack`, descarte de `cmd_id` repetidos.
-- [ ] C3 pipeline/trigger_manager · C4 SD store-and-forward · C5 subida HTTP · C6 config remota ·
+- [x] **B0** — docker compose: Mosquitto 2.0 (usuarios = node_id, ACL por tema según Contrato §8.2, sin TLS)
+      + Postgres 16 + FastAPI con `/api/v1/health`. Probado.
+- [x] **C2** — `mg_mqtt`, `mg_time` (3 servidores NTP + evento MG_TIME_EVENT_SYNCED), `mg_contract` (cJSON);
+      `net_task`: status retenido + LWT, cmd → ack accepted/done/rejected, cmd_id repetidos, vigencia 60 s.
+      Probado en placa salvo el arreglo de NTP (grabar y confirmar que `ts` ya no sale en 1970).
+      `mg_settings` (NVS) se pospone a C6. Handlers actuales: capture_now (captura directa) y reboot.
+- [ ] **C3** (siguiente) — trigger_manager + capture_task + colas; capture_now pasa a ser asíncrono.
+- [ ] C4 SD store-and-forward · C5 subida HTTP · C6 config remota ·
       C7 análisis HSV · C8 vista en vivo · C9 extras. Luego nodo de pantalla D0–D6.

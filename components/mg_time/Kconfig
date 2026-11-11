@@ -1,0 +1,24 @@
+menu "MasterGrow - Hora (SNTP)"
+
+    config MG_TIME_NTP_SERVER
+        string "Servidor NTP principal"
+        default "time.google.com"
+        help
+            En algunas redes pool.ntp.org no responde por IPv4; time.google.com sí.
+
+    config MG_TIME_NTP_SERVER2
+        string "Servidor NTP secundario (vacío = ninguno)"
+        default "pool.ntp.org"
+
+    config MG_TIME_NTP_SERVER3
+        string "Servidor NTP terciario (vacío = ninguno)"
+        default "time.cloudflare.com"
+
+    config MG_TIME_VALID_AFTER_YEAR
+        int "Año mínimo para considerar la hora válida"
+        default 2025
+        help
+            Sin sincronizar, el reloj arranca en 1970: cualquier fecha anterior a este año
+            se considera hora no válida.
+
+endmenu

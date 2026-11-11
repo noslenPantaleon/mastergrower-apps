@@ -3,3 +3,9 @@ dependencies:
   # Componentes compartidos del monorepo (raíz/components)
   mg_wifi:
     path: ../../components/mg_wifi
+  mg_mqtt:
+    path: ../../components/mg_mqtt
+  mg_time:
+    path: ../../components/mg_time
+  mg_contract:
+    path: ../../components/mg_contract

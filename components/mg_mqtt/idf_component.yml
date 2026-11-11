@@ -1,0 +1,5 @@
+version: "0.1.0"
+description: "MasterGrow - cliente MQTT con LWT, re-suscripción y despacho por tema"
+dependencies:
+  idf: ">=5.3"
+  espressif/mqtt: "^1.1.0"

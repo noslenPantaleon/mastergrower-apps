@@ -1,0 +1,4 @@
+version: "0.1.0"
+description: "MasterGrow - hora por SNTP y marcas ISO-8601 UTC"
+dependencies:
+  idf: ">=5.3"

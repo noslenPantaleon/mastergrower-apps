@@ -6,10 +6,10 @@ documentos de especificación en [references/](references/).
 | Carpeta | Qué es | Estado |
 |---|---|---|
 | [contract/](contract/) | Fuente ejecutable del contrato (temas MQTT y JSON Schema) | v1 inicial |
-| [components/](components/) | Componentes ESP-IDF compartidos (`mg_wifi`, …) | en desarrollo |
-| [nodo_camara/](nodo_camara/) | Firmware del nodo de cámara — Seeed XIAO ESP32-S3 Sense (OV3660) | fase C1 |
+| [components/](components/) | Componentes ESP-IDF compartidos (`mg_wifi`, `mg_mqtt`, `mg_time`, `mg_contract`) | en desarrollo |
+| [nodo_camara/](nodo_camara/) | Firmware del nodo de cámara — Seeed XIAO ESP32-S3 Sense (OV3660) | fase C2 |
 | `nodo_pantalla/` | Firmware del dashboard — Waveshare ESP32-S3-Touch-LCD-4.3B-BOX | pendiente |
-| `backend/` | API FastAPI + Mosquitto + PostgreSQL | pendiente |
+| [backend/](backend/) | API FastAPI + Mosquitto + PostgreSQL (docker compose) | fase B0 |
 
 ## Requisitos
 
@@ -19,11 +19,24 @@ documentos de especificación en [references/](references/).
   source ~/.espressif/tools/activate_idf_v6.1.sh
   ```
 
+## Backend (broker, base de datos y API)
+
+```sh
+cd backend
+cp .env.example .env            # y cambiar las claves
+docker compose up -d --build    # mosquitto :1883 (LAN), postgres :5432 (local), api :8000
+curl http://localhost:8000/api/v1/health
+```
+
+- `./scripts/mqtt_ver.sh` muestra todo el tráfico MQTT.
+- `./scripts/cam_cmd.sh capture_now [cam-01]` envía un comando y muestra el `cmd/ack`.
+- Desarrollo de la API: `uv sync`, `uv run pytest`, `uv run ruff check .`
+
 ## Nodo de cámara
 
 ```sh
 cd nodo_camara
-cp sdkconfig.defaults.local.example sdkconfig.defaults.local   # completar SSID y contraseña
+cp sdkconfig.defaults.local.example sdkconfig.defaults.local   # WiFi + broker MQTT + clave de cam-01
 rm -f sdkconfig                                                 # solo si ya existía, para tomar los defaults
 idf.py set-target esp32s3                                       # una vez
 idf.py build flash monitor

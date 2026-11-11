@@ -1,0 +1,26 @@
+# Control de acceso por tema (Contrato §8.2). El usuario MQTT de cada nodo es su node_id.
+
+# --- Nodos de cámara (usuario cam-NN): solo su subárbol ---
+pattern write growlab/cam/%u/status
+pattern write growlab/cam/%u/event
+pattern write growlab/cam/%u/cmd/ack
+pattern read  growlab/cam/%u/cmd
+
+# --- Módulo de control (usuario ctrl-NN) ---
+pattern write growlab/ctrl/%u/state
+pattern write growlab/ctrl/%u/event
+pattern write growlab/ctrl/%u/cmd/ack
+pattern read  growlab/ctrl/%u/cmd
+
+# --- Pantalla (usuario disp-NN): lee todo, publica solo comandos y su estado ---
+pattern write growlab/disp/%u/status
+
+user disp-01
+topic read  growlab/#
+topic write growlab/cam/+/cmd
+topic write growlab/ctrl/+/cmd
+
+# --- API: acceso completo al árbol growlab y lectura de $SYS ---
+user api
+topic readwrite growlab/#
+topic read $SYS/#

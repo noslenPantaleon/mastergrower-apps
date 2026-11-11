@@ -49,3 +49,6 @@ CONFIG_HM0360_SUPPORT=n
 
 # ---- Red ----
 CONFIG_LWIP_LOCAL_HOSTNAME="mastergrow-cam"
+
+# ---- Hora: hasta 3 servidores NTP (mg_time) ----
+CONFIG_LWIP_SNTP_MAX_SERVERS=3

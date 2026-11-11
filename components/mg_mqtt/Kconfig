@@ -1,0 +1,42 @@
+menu "MasterGrow - MQTT"
+
+    config MG_MQTT_BROKER_URI
+        string "URI del broker"
+        default "mqtt://192.168.1.10:1883"
+        help
+            mqtt://host:1883 sin TLS (desarrollo en LAN) o mqtts://host:8883 con TLS.
+
+    config MG_MQTT_USERNAME
+        string "Usuario (por convención, el node_id)"
+        default ""
+
+    config MG_MQTT_PASSWORD
+        string "Contraseña"
+        default ""
+
+    config MG_MQTT_USE_TLS
+        bool "Usar TLS (mqtts://) con el bundle de certificados de IDF"
+        default n
+        help
+            Desactivado mientras el sistema corre solo en la red local (decisión del proyecto).
+            Al activarlo, la URI debe ser mqtts:// y el certificado del broker debe validar
+            contra el bundle de CA de ESP-IDF.
+
+    config MG_MQTT_KEEPALIVE_S
+        int "Keepalive (s): el LWT se publica tras ~1.5x este tiempo sin contacto"
+        default 30
+        range 5 600
+
+    config MG_MQTT_MAX_SUBSCRIPTIONS
+        int "Máximo de suscripciones registradas"
+        default 8
+        range 1 32
+
+    config MG_MQTT_MAX_RX_MSG
+        int "Tamaño máximo de un mensaje recibido (bytes)"
+        default 2048
+        range 256 16384
+        help
+            Los comandos son JSON chicos; las imágenes nunca viajan por MQTT (Contrato §9).
+
+endmenu

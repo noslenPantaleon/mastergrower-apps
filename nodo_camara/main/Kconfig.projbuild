@@ -10,6 +10,14 @@ menu "MasterGrow - Nodo de cámara"
         string "Versión de firmware (se publica en status)"
         default "0.1.0"
 
+    config MG_STATUS_PERIOD_S
+        int "Período de republicación del status (s)"
+        default 300
+        range 30 3600
+        help
+            El status se publica al conectar y en cada cambio; además se refresca
+            periódicamente (RSSI, espacio en SD).
+
     config MG_CAPTURE_RES
         string "Resolución de captura rutinaria"
         default "SVGA"

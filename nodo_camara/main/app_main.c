@@ -1,10 +1,10 @@
 /**
  * @file app_main.c
- * @brief Nodo de cámara — arranque. Fase C1: inicializa la cámara, corre una autoprueba de
- *        captura y, en desarrollo, levanta WiFi + el servidor HTTP de depuración.
+ * @brief Nodo de cámara — arranque: cámara (C1), WiFi, net_task MQTT con status/LWT y
+ *        comandos (C2) y, en desarrollo, el servidor HTTP de depuración.
  *
  * Las fases siguientes agregan aquí el arranque de las tareas del pipeline
- * (trigger_manager, capture_task, analysis_task, upload_task, net_task, ...).
+ * (trigger_manager, capture_task, analysis_task, upload_task, ...).
  */
 #include <inttypes.h>
 #include "esp_app_desc.h"
@@ -13,12 +13,18 @@
 #include "esp_log.h"
 #include "esp_netif.h"
 #include "esp_psram.h"
+#include "esp_system.h"
 #include "esp_timer.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
 #include "nvs_flash.h"
 
+#include "app_state.h"
 #include "default_params.h"
 #include "hal_camera.h"
+#include "mg_time.h"
 #include "mg_wifi.h"
+#include "processes/net_task.h"
 #include "system_config.h"
 
 #if CONFIG_MG_DEBUG_HTTP
@@ -103,35 +109,84 @@ static void camera_selftest(int n)
              (unsigned)sz_min, (unsigned)sz_max);
 }
 
-#if CONFIG_MG_DEBUG_HTTP
+/* ------------------------------------------------------------------ comandos (C2) */
+
+/**
+ * capture_now: por ahora captura en el momento y registra el resultado.
+ * En C3 pasa a encolar un disparo comando_remoto en el trigger_manager (respuesta asíncrona).
+ */
+static esp_err_t cmd_capture_now(const mg_cmd_t *cmd, char *motivo, size_t motivo_len)
+{
+    hal_frame_t f;
+    esp_err_t err = hal_camera_capture(&f, pdMS_TO_TICKS(3000));
+    if (err != ESP_OK) {
+        snprintf(motivo, motivo_len, "error_camara");
+        net_task_publish_event(MG_EVT_ERROR_CAMARA, MG_SEV_MEDIA, NULL, esp_err_to_name(err));
+        return err;
+    }
+    ESP_LOGI(TAG, "capture_now: %ux%u, %u bytes", f.width, f.height, (unsigned)f.len);
+    hal_camera_release(&f);
+    app_state_set_ultima_captura(time(NULL));
+    return ESP_OK;
+}
+
+static void reboot_task(void *arg)
+{
+    vTaskDelay(pdMS_TO_TICKS(1500));  // margen para que salga el ack
+    esp_restart();
+}
+
+static esp_err_t cmd_reboot(const mg_cmd_t *cmd, char *motivo, size_t motivo_len)
+{
+    ESP_LOGW(TAG, "Reinicio pedido por %s", cmd->emisor);
+    xTaskCreate(reboot_task, "reboot", 2048, NULL, 1, NULL);
+    return ESP_ERR_NOT_FINISHED;  // solo "accepted": el nodo se reinicia antes de un "done"
+}
+
+/* ------------------------------------------------------------------ red */
+
 static void on_wifi_connected(void *arg, esp_event_base_t base, int32_t id, void *data)
 {
     char ip[16];
     mg_wifi_get_ip_str(ip, sizeof(ip));
+#if CONFIG_MG_DEBUG_HTTP
     ESP_LOGI(TAG, "Vista previa: http://%s:%d/  (RSSI %d dBm)", ip, CONFIG_MG_DEBUG_HTTP_PORT,
              mg_wifi_get_rssi());
+#else
+    ESP_LOGI(TAG, "IP %s (RSSI %d dBm)", ip, mg_wifi_get_rssi());
+#endif
 }
 
-static void start_debug_network(void)
+static esp_err_t start_network(void)
 {
     ESP_ERROR_CHECK(esp_event_handler_register(MG_WIFI_EVENT, MG_WIFI_EVENT_CONNECTED,
                                                on_wifi_connected, NULL));
     const mg_wifi_config_t wcfg = { .hostname = SYS_NODE_ID };
     esp_err_t err = mg_wifi_start(&wcfg);
     if (err != ESP_OK) {
-        ESP_LOGE(TAG, "WiFi no iniciado (%s): sin servidor de depuración", esp_err_to_name(err));
-        return;
+        /* Sin WiFi el nodo igual debería capturar y guardar en SD (modo autónomo, C4). */
+        ESP_LOGE(TAG, "WiFi no iniciado (%s): nodo sin red", esp_err_to_name(err));
+        app_state_set_estado(MG_ESTADO_AUTONOMO);
+        return err;
     }
+
+    net_task_register_cmd(MG_ACCION_CAPTURE_NOW, cmd_capture_now);
+    net_task_register_cmd(MG_ACCION_REBOOT, cmd_reboot);
+    ESP_ERROR_CHECK(net_task_start());
+
+#if CONFIG_MG_DEBUG_HTTP
     /* httpd escucha en todas las interfaces: puede arrancar antes de tener IP. */
     ESP_ERROR_CHECK(debug_http_start());
-}
 #endif
+    return ESP_OK;
+}
 
 void app_main(void)
 {
     const esp_app_desc_t *app = esp_app_get_description();
     ESP_LOGI(TAG, "MasterGrow nodo de cámara %s · node_id=%s · fw %s · IDF %s", app->project_name,
              SYS_NODE_ID, SYS_FIRMWARE_VERSION, app->idf_ver);
+    app_state_init();
 
     size_t psram = esp_psram_is_initialized() ? esp_psram_get_size() : 0;
     if (psram == 0) {
@@ -147,15 +202,14 @@ void app_main(void)
 
     esp_err_t err = init_camera();
     if (err != ESP_OK) {
-        /* Más adelante: publicar evento error_camara y estado_nodo=error. */
         ESP_LOGE(TAG, "Cámara no disponible: %s", esp_err_to_name(err));
+        app_state_set_estado(MG_ESTADO_ERROR);
     } else {
         log_memory("cámara lista");
         camera_selftest(CONFIG_MG_SELFTEST_CAPTURES);
         log_memory("autoprueba");
     }
 
-#if CONFIG_MG_DEBUG_HTTP
-    start_debug_network();
-#endif
+    /* Si la cámara falló, el status publicado al conectar lleva estado_nodo=error. */
+    start_network();
 }

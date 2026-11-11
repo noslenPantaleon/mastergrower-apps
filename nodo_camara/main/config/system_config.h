@@ -14,5 +14,7 @@
 #define SYS_CORE_APP   1
 
 /* Pilas y prioridades iniciales: ajustar midiendo con uxTaskGetStackHighWaterMark. */
+#define SYS_NET_TASK_STACK     6144
+#define SYS_NET_TASK_PRIO      5
 #define SYS_DEBUG_HTTP_STACK   8192
 #define SYS_DEBUG_HTTP_PRIO    5

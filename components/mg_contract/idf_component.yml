@@ -1,0 +1,7 @@
+version: "0.1.0"
+description: "MasterGrow - contrato de interfaces: temas MQTT, enumeraciones y mensajes JSON (schema_version 1)"
+dependencies:
+  idf: ">=5.3"
+  espressif/cjson: "^1.7.19"
+  mg_time:
+    path: ../mg_time
