@@ -3,6 +3,7 @@
 set(srcs
     "src/hal_camera.c"
     "src/hal_camera_dvp_common.c"
+    "src/hal_storage_sd.c"
 )
 if(CONFIG_MG_CAMERA_OV3660)
     list(APPEND srcs "src/hal_camera_ov3660.c")
@@ -15,5 +16,5 @@ idf_component_register(
     INCLUDE_DIRS "include"
     PRIV_INCLUDE_DIRS "priv_include"
     REQUIRES esp_common
-    PRIV_REQUIRES esp_timer esp_psram
+    PRIV_REQUIRES esp_timer esp_psram fatfs sdmmc esp_driver_sdspi esp_driver_spi
 )

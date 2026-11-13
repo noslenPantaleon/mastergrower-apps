@@ -16,6 +16,7 @@
 #include "freertos/queue.h"
 #include "hal_camera.h"
 #include "mg_contract.h"
+#include "storage_queue.h"
 
 typedef enum {
     PRIORIDAD_NORMAL = 0,
@@ -54,6 +55,7 @@ typedef struct {
     uint16_t width;
     uint16_t height;
     sensores_snapshot_t sensores;
+    char sq_id[SQ_ID_MAX_LEN];   /**< id en la SD ("" si no se pudo guardar o no hay tarjeta) */
     /* C7: resultado del análisis local */
     bool analizado;
 } capture_job_t;
@@ -71,6 +73,13 @@ esp_err_t pipeline_init(void);
 /** @brief Crea un job copiando el JPEG del framebuffer a PSRAM. NULL si no hay memoria. */
 capture_job_t *pipeline_job_new(const trigger_t *trig, const hal_frame_t *frame);
 void pipeline_job_free(capture_job_t *job);
+
+/**
+ * @brief Metadatos de la captura según el Contrato §5.2 (POST /capturas): node_id, timestamp,
+ *        camera_type, trigger_type, resolucion, prioridad, sensores_snapshot, analisis_local.
+ * @return JSON con malloc (liberar con free) o NULL.
+ */
+char *pipeline_meta_json(const capture_job_t *job);
 
 /**
  * @brief Fin del recorrido de un job por las etapas de C3. En C4 lo reemplaza el encolado a la SD.

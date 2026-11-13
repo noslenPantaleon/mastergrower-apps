@@ -12,6 +12,8 @@
 #include "esp_log.h"
 #include "esp_timer.h"
 #include "hal_camera.h"
+#include "hal_storage.h"
+#include "storage_queue.h"
 #include "mg_wifi.h"
 #include "system_config.h"
 
@@ -153,6 +155,53 @@ static esp_err_t control_get(httpd_req_t *req)
     return httpd_resp_sendstr(req, "{\"ok\":true}");
 }
 
+static esp_err_t storage_get(httpd_req_t *req)
+{
+    httpd_resp_set_type(req, "application/json");
+    if (!storage_queue_ready()) {
+        return httpd_resp_sendstr(req, "{\"montada\":false}");
+    }
+    uint64_t total = 0, libre = 0;
+    hal_storage_get_usage(&total, &libre);
+
+    sq_entry_t recent[10];
+    size_t n = storage_queue_list_recent(recent, 10);
+
+    char head[160];
+    snprintf(head, sizeof(head),
+             "{\"montada\":true,\"total_mb\":%llu,\"libre_mb\":%llu,\"libre_pct\":%d,\"pendientes\":%u,"
+             "\"recientes\":[", total >> 20, libre >> 20, hal_storage_free_pct(), (unsigned)storage_queue_count());
+    httpd_resp_send_chunk(req, head, HTTPD_RESP_USE_STRLEN);
+    for (size_t i = 0; i < n; i++) {
+        char item[112];
+        snprintf(item, sizeof(item), "%s{\"id\":\"%s\",\"bytes\":%" PRIu32 ",\"alta\":%s}", i ? "," : "",
+                 recent[i].id, recent[i].jpeg_len, recent[i].alta ? "true" : "false");
+        httpd_resp_send_chunk(req, item, HTTPD_RESP_USE_STRLEN);
+    }
+    httpd_resp_send_chunk(req, "]}", 2);
+    return httpd_resp_send_chunk(req, NULL, 0);
+}
+
+static esp_err_t storage_img_get(httpd_req_t *req)
+{
+    char query[96], id[SQ_ID_MAX_LEN];
+    if (httpd_req_get_url_query_str(req, query, sizeof(query)) != ESP_OK ||
+        httpd_query_key_value(query, "id", id, sizeof(id)) != ESP_OK) {
+        httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "falta id");
+        return ESP_FAIL;
+    }
+    uint8_t *jpeg = NULL;
+    size_t len = 0;
+    if (storage_queue_read(id, &jpeg, &len, NULL) != ESP_OK) {
+        httpd_resp_send_err(req, HTTPD_404_NOT_FOUND, "no existe");
+        return ESP_FAIL;
+    }
+    httpd_resp_set_type(req, "image/jpeg");
+    esp_err_t err = httpd_resp_send(req, (const char *)jpeg, len);
+    free(jpeg);
+    return err;
+}
+
 esp_err_t debug_http_start(void)
 {
     if (s_server) {
@@ -175,6 +224,8 @@ esp_err_t debug_http_start(void)
         { .uri = "/capture.jpg", .method = HTTP_GET, .handler = capture_get },
         { .uri = "/status", .method = HTTP_GET, .handler = status_get },
         { .uri = "/control", .method = HTTP_GET, .handler = control_get },
+        { .uri = "/storage", .method = HTTP_GET, .handler = storage_get },
+        { .uri = "/storage/img", .method = HTTP_GET, .handler = storage_img_get },
     };
     for (size_t i = 0; i < sizeof(uris) / sizeof(uris[0]); i++) {
         httpd_register_uri_handler(s_server, &uris[i]);

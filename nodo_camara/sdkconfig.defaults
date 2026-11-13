@@ -47,6 +47,10 @@ CONFIG_MEGA_CCM_SUPPORT=n
 CONFIG_HM1055_SUPPORT=n
 CONFIG_HM0360_SUPPORT=n
 
+# ---- FATFS (microSD): nombres largos para los ids de captura ----
+CONFIG_FATFS_LFN_HEAP=y
+CONFIG_FATFS_MAX_LFN=64
+
 # ---- Red ----
 CONFIG_LWIP_LOCAL_HOSTNAME="mastergrow-cam"
 

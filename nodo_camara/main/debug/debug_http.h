@@ -6,6 +6,8 @@
  *   GET /capture.jpg  captura JPEG (encabezados X-Capture-Ms, X-Frame-Size)
  *   GET /status       JSON con cámara, memoria y red
  *   GET /control?res=SVGA&quality=12&vflip=1&hmirror=0
+ *   GET /storage      JSON: estado de la microSD y últimas capturas pendientes
+ *   GET /storage/img?id=<id>  JPEG guardado en la SD
  */
 #pragma once
 

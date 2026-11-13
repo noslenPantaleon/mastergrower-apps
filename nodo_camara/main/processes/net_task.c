@@ -13,6 +13,7 @@
 #include "freertos/queue.h"
 #include "freertos/task.h"
 #include "hal_camera.h"
+#include "hal_storage.h"
 #include "mg_mqtt.h"
 #include "mg_time.h"
 #include "mg_wifi.h"
@@ -108,7 +109,7 @@ static void publish_status(void)
         .camera_type = hal_camera_type(),
         .firmware = SYS_FIRMWARE_VERSION,
         .ultima_captura = t ? ultima : NULL,
-        .sd_libre_pct = -1,  // C4: tarjeta SD
+        .sd_libre_pct = hal_storage_free_pct(),  // -1 → null si no hay tarjeta
         .rssi = mg_wifi_get_rssi(),
         .zona_id = NULL,     // C6: config remota
     };

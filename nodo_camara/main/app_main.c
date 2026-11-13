@@ -23,6 +23,8 @@
 #include "app_state.h"
 #include "default_params.h"
 #include "hal_camera.h"
+#include "hal_storage.h"
+#include "storage_queue.h"
 #include "mg_time.h"
 #include "mg_wifi.h"
 #include "processes/analysis_task.h"
@@ -140,6 +142,21 @@ static esp_err_t cmd_capture_now(const mg_cmd_t *cmd, char *motivo, size_t motiv
     return ESP_ERR_NOT_FINISHED;
 }
 
+/** microSD + cola de pendientes. Sin tarjeta el nodo sigue, sin buffer local. */
+static void init_storage(void)
+{
+    if (hal_storage_init() != ESP_OK) {
+        return;
+    }
+    esp_err_t err = storage_queue_init(HAL_STORAGE_ROOT);
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "storage_queue no disponible: %s", esp_err_to_name(err));
+        return;
+    }
+    ESP_LOGI(TAG, "Buffer local: %u capturas pendientes, %d%% libre", (unsigned)storage_queue_count(),
+             hal_storage_free_pct());
+}
+
 static esp_err_t start_pipeline(void)
 {
     trigger_config_t tcfg;
@@ -227,6 +244,9 @@ void app_main(void)
     ESP_ERROR_CHECK(esp_netif_init());
     ESP_ERROR_CHECK(esp_event_loop_create_default());
     log_memory("arranque");
+
+    init_storage();
+    log_memory("almacenamiento");
 
     esp_err_t err = init_camera();
     if (err != ESP_OK) {

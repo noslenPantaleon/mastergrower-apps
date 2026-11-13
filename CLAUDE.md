@@ -29,7 +29,11 @@ Idioma de trabajo: español (código con identificadores en inglés; comentarios
 - El sandbox de Claude bloquea UDP desde Python: no sirve para probar NTP/DNS; usar `sntp` del sistema.
 - Compilar y grabar la cámara:
   `cd nodo_camara && idf.py -p /dev/cu.usbmodem101 build flash monitor`
-- Credenciales WiFi y MQTT (broker = IP de la Mac, 192.168.100.182) en `nodo_camara/sdkconfig.defaults.local`
+- **La IP de la Mac cambia por DHCP** (era .182, el 2026-11-13 pasó a .169): si la cámara queda
+  `fuera_de_linea`, comparar `ipconfig getifaddr en0` con CONFIG_MG_MQTT_BROKER_URI. Pendiente decidir:
+  reserva DHCP en el router o mDNS (`<mac>.local` con espressif/mdns).
+- El scratchpad de Claude se borra entre sesiones: `readlog.py` (lector serie con reset) hay que recrearlo.
+- Credenciales WiFi y MQTT (broker = IP de la Mac) en `nodo_camara/sdkconfig.defaults.local`
   (gitignored). Tras editarlo: `rm sdkconfig`. Si el usuario tiene un `idf.py monitor` abierto, el puerto
   queda ocupado: pedirle que lo cierre con Ctrl+] antes de grabar.
 - La extensión ESP-IDF de VS Code solo funciona abriendo la carpeta del nodo (`nodo_camara`), no la raíz.
@@ -67,6 +71,12 @@ Idioma de trabajo: español (código con identificadores en inglés; comentarios
       capture_now es asíncrono: el ack "done" lo manda capture_task. net_task llama al handler ANTES de
       responder, así un rechazo nunca va precedido de "accepted". Probado en placa.
       `sdkconfig.defaults.local` del usuario tiene CONFIG_MG_CAPTURE_INTERVAL_MIN=1 para pruebas.
-- [ ] **C4** (siguiente) — microSD (SPI, GPIO21 CS) + storage_queue store-and-forward; sd_libre_pct en status.
-- [ ] C5 subida HTTP · C6 config remota ·
+- [~] **C4** — `node_hal/hal_storage` (SDSPI + FATFS en /sd, nunca formatea) y servicio
+      `components/services/storage_queue` (agregado con EXTRA_COMPONENT_DIRS): <id>.jpg + <id>.json en
+      /sd/mg/pend, escritura atómica (temporales + rename), índice en PSRAM reconstruido al arrancar,
+      limpieza (rutinarias viejas primero; máx 2000 pendientes; mín 10 % libre), evento sd_llena al 80 %
+      con histéresis. capture_task guarda ANTES de q_frame; metadatos del Contrato §5.2 en pipeline_meta_json.
+      Debug: GET /storage y /storage/img?id=. **Probado SOLO sin tarjeta** (sigue operando, sd_libre_pct null).
+      Falta probar con microSD FAT32 colocada: guardar, reiniciar, verificar índice y /storage.
+- [ ] **C5** — upload_task + B1 (POST /capturas) · C6 config remota ·
       C7 análisis HSV · C8 vista en vivo · C9 extras. Luego nodo de pantalla D0–D6.

@@ -35,4 +35,12 @@ menu "MasterGrow - Cámara (HAL)"
         bool "Espejar horizontalmente"
         default n
 
+    config MG_SD_SPI_FREQ_KHZ
+        int "Frecuencia SPI de la microSD (kHz)"
+        default 20000
+        range 400 40000
+        help
+            20 MHz es seguro para la mayoría de las tarjetas. Si hay errores de lectura/escritura,
+            bajar a 10000.
+
 endmenu
