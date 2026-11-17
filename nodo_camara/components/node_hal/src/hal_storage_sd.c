@@ -5,17 +5,21 @@
 #include "hal_storage.h"
 
 #include "board_xiao_esp32s3_sense.h"
+#include "driver/gpio.h"
 #include "driver/sdspi_host.h"
 #include "driver/spi_common.h"
 #include "esp_check.h"
 #include "esp_log.h"
 #include "esp_vfs_fat.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
 #include "sdmmc_cmd.h"
 #include "sdkconfig.h"
 
 static const char *TAG = "hal_storage";
 
-#define SD_SPI_HOST SPI2_HOST
+#define SD_SPI_HOST    SPI2_HOST
+#define SD_INIT_TRIES  3
 
 static struct {
     sdmmc_card_t *card;
@@ -36,6 +40,13 @@ esp_err_t hal_storage_init(void)
         .quadhd_io_num = -1,
         .max_transfer_sz = 16 * 1024,
     };
+    /* En modo SPI la tarjeta necesita pull-ups en CS, MISO y MOSI (spec SD). La placa Sense puede
+     * no tenerlos en todas las líneas: se habilitan los internos (~45 kΩ) como respaldo. */
+    const int pulled[] = { BOARD_SD_PIN_CS, BOARD_SD_PIN_MISO, BOARD_SD_PIN_MOSI };
+    for (size_t i = 0; i < sizeof(pulled) / sizeof(pulled[0]); i++) {
+        gpio_set_pull_mode(pulled[i], GPIO_PULLUP_ONLY);
+    }
+
     if (!s_sd.bus_ok) {
         ESP_RETURN_ON_ERROR(spi_bus_initialize(SD_SPI_HOST, &bus, SPI_DMA_CH_AUTO), TAG, "spi_bus_initialize");
         s_sd.bus_ok = true;
@@ -55,7 +66,16 @@ esp_err_t hal_storage_init(void)
         .allocation_unit_size = 16 * 1024,
     };
 
-    esp_err_t err = esp_vfs_fat_sdspi_mount(HAL_STORAGE_ROOT, &host, &slot, &mount, &s_sd.card);
+    /* Algunas tarjetas tardan en estar listas tras el encendido: se reintenta con espera creciente. */
+    esp_err_t err = ESP_FAIL;
+    for (int i = 0; i < SD_INIT_TRIES; i++) {
+        err = esp_vfs_fat_sdspi_mount(HAL_STORAGE_ROOT, &host, &slot, &mount, &s_sd.card);
+        if (err == ESP_OK || err == ESP_FAIL) {  // ESP_FAIL = tarjeta presente pero sin FAT: no reintentar
+            break;
+        }
+        ESP_LOGW(TAG, "Intento %d/%d de montar la microSD: %s", i + 1, SD_INIT_TRIES, esp_err_to_name(err));
+        vTaskDelay(pdMS_TO_TICKS(200 * (i + 1)));
+    }
     if (err != ESP_OK) {
         s_sd.card = NULL;
         spi_bus_free(SD_SPI_HOST);

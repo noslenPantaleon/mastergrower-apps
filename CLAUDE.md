@@ -71,12 +71,12 @@ Idioma de trabajo: español (código con identificadores en inglés; comentarios
       capture_now es asíncrono: el ack "done" lo manda capture_task. net_task llama al handler ANTES de
       responder, así un rechazo nunca va precedido de "accepted". Probado en placa.
       `sdkconfig.defaults.local` del usuario tiene CONFIG_MG_CAPTURE_INTERVAL_MIN=1 para pruebas.
-- [~] **C4** — `node_hal/hal_storage` (SDSPI + FATFS en /sd, nunca formatea) y servicio
-      `components/services/storage_queue` (agregado con EXTRA_COMPONENT_DIRS): <id>.jpg + <id>.json en
+- [x] **C4** — `node_hal/hal_storage` (SDSPI + FATFS en /sd, nunca formatea, pull-ups internos + 3 reintentos)
+      y servicio `components/services/storage_queue` (agregado con EXTRA_COMPONENT_DIRS): <id>.jpg + <id>.json en
       /sd/mg/pend, escritura atómica (temporales + rename), índice en PSRAM reconstruido al arrancar,
       limpieza (rutinarias viejas primero; máx 2000 pendientes; mín 10 % libre), evento sd_llena al 80 %
       con histéresis. capture_task guarda ANTES de q_frame; metadatos del Contrato §5.2 en pipeline_meta_json.
-      Debug: GET /storage y /storage/img?id=. **Probado SOLO sin tarjeta** (sigue operando, sd_libre_pct null).
-      Falta probar con microSD FAT32 colocada: guardar, reiniciar, verificar índice y /storage.
+      Debug: GET /storage y /storage/img?id=. Probado con microSD de 16 GB y sin tarjeta. Las capturas
+      tomadas antes de sincronizar NTP quedan con id `19700101T000000Z_...` (tenerlo en cuenta en C5).
 - [ ] **C5** — upload_task + B1 (POST /capturas) · C6 config remota ·
       C7 análisis HSV · C8 vista en vivo · C9 extras. Luego nodo de pantalla D0–D6.

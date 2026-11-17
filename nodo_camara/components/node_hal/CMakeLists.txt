@@ -16,5 +16,5 @@ idf_component_register(
     INCLUDE_DIRS "include"
     PRIV_INCLUDE_DIRS "priv_include"
     REQUIRES esp_common
-    PRIV_REQUIRES esp_timer esp_psram fatfs sdmmc esp_driver_sdspi esp_driver_spi
+    PRIV_REQUIRES esp_timer esp_psram fatfs sdmmc esp_driver_sdspi esp_driver_spi esp_driver_gpio
 )
