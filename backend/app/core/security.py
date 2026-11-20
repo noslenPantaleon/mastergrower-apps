@@ -69,5 +69,15 @@ async def require_reader(
     return p  # un nodo también puede leer (p. ej. para depurar); B4 afina permisos
 
 
+async def require_user(request: Request, settings: SettingsDep) -> Principal:
+    p = _resolve(_bearer(request), settings)
+    if p is None:
+        raise ApiError(401, "Token ausente o inválido")
+    if p.kind != "user":
+        raise ApiError(403, "Se requiere un token de usuario")
+    return p
+
+
 NodeDep = Annotated[Principal, Depends(require_node)]
+UserDep = Annotated[Principal, Depends(require_user)]
 ReaderDep = Annotated[Principal, Depends(require_reader)]

@@ -12,6 +12,7 @@ _CODES = {
     401: "unauthenticated",
     403: "forbidden",
     404: "not_found",
+    409: "conflict",
     413: "payload_too_large",
     415: "unsupported_media_type",
     422: "invalid_data",

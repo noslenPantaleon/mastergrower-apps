@@ -31,6 +31,13 @@ async def get_session() -> AsyncIterator[AsyncSession]:
         yield session
 
 
+def get_sessionmaker() -> async_sessionmaker[AsyncSession]:
+    """Para tareas de fondo (ingestor MQTT) que no pasan por las dependencias de FastAPI."""
+    get_engine()
+    assert _sessionmaker is not None
+    return _sessionmaker
+
+
 async def ping_db() -> bool:
     try:
         async with get_engine().connect() as conn:

@@ -293,8 +293,8 @@ Semana 6+  B5 · C8 · D5 · D4 · D6 · C9
 
 Hardware:
 - **XIAO Sense:** GPIO21 lo comparten el CS de la SD y el LED de usuario (`hal_status_led`).
-- Los nombres de campo del contrato mezclan español e inglés (`camera_type`, `estado_nodo`); se
-  respetan tal cual para no romper el contrato.
+- Los nombres de campo del Contrato .docx mezclan español e inglés (`camera_type`, `estado_nodo`).
+  Desde el 2026-11-18 el contrato ejecutable usa solo inglés: equivalencia en `contract/NAMING.md`.
 
 ---
 

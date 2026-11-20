@@ -23,3 +23,15 @@ async def test_health_degraded_without_db():
     body = await _get_health(False)
     assert body["status"] == "degraded"
     assert body["db"] == "error"
+
+
+async def test_health_degraded_without_mqtt():
+    from app.api.v1.health import mqtt_status
+
+    app = create_app()
+    app.dependency_overrides[db_status] = lambda: True
+    app.dependency_overrides[mqtt_status] = lambda: "error"
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        body = (await client.get("/api/v1/health")).json()
+    assert body["status"] == "degraded"
+    assert body["mqtt"] == "error"

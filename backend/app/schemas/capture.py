@@ -1,11 +1,12 @@
 """Esquemas de capturas (contract/http/schemas/capture_metadata.schema.json)."""
 
-from datetime import UTC, datetime
+from datetime import datetime
 from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_serializer
 
-CameraType = Literal["xiao-ov3660", "xiao-ov5640", "rpi-noir", "thermal-mlx90640", "thermal-lepton"]
+from app.schemas.common import CameraType, iso_z
+
 TriggerType = Literal["timer", "sensor_event", "remote_command", "post_actuation", "schedule"]
 Resolution = Literal["QVGA", "VGA", "SVGA", "XGA", "HD", "SXGA", "UXGA", "QXGA"]
 Priority = Literal["normal", "high"]
@@ -38,11 +39,6 @@ class CaptureMetadata(BaseModel):
     local_analysis: dict[str, Any] | None = None
 
 
-def _utc(dt: datetime) -> datetime:
-    # SQLite devuelve fechas sin zona: se asumen UTC
-    return dt.replace(tzinfo=UTC) if dt.tzinfo is None else dt.astimezone(UTC)
-
-
 class CaptureOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -65,8 +61,8 @@ class CaptureOut(BaseModel):
     image_bytes: int
 
     @field_serializer("timestamp", "received_at")
-    def _iso(self, dt: datetime) -> str:
-        return _utc(dt).strftime("%Y-%m-%dT%H:%M:%SZ")
+    def _iso(self, dt: datetime) -> str | None:
+        return iso_z(dt)
 
 
 class CaptureList(BaseModel):

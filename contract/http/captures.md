@@ -36,11 +36,11 @@ Si el nodo reintenta porque se perdió la respuesta, la API no duplica la captur
 Si `timestamp` es `null`, la API usa la hora de recepción y responde `timestamp_approx: true`.
 
 Códigos de error (`code`): `bad_request`, `unauthenticated`, `forbidden`, `not_found`,
-`payload_too_large`, `unsupported_media_type`, `invalid_data`.
+`payload_too_large`, `unsupported_media_type`, `conflict`, `invalid_data`.
 
 ## GET /captures
 
-Filtros: `node_id`, `trigger_type`, `since`, `until` (ISO-8601), `zone_id` (cuando existan zonas, B4).
+Filtros: `node_id`, `trigger_type`, `since`, `until` (ISO-8601), `zone_id` (zona actual del nodo en la tabla `nodes`).
 Paginación: `limit` (1–200, por defecto 50) y `cursor` (el `next_cursor` de la página anterior).
 Orden: más recientes primero. Respuesta `{"items": [Capture...], "next_cursor": "..." | null}`.
 

@@ -73,14 +73,12 @@ async def list_captures(
     trigger_type: TriggerType | None = None,
     since: datetime | None = None,
     until: datetime | None = None,
-    zone_id: Annotated[str | None, Query(description="B4: todavía no hay zonas")] = None,
+    zone_id: Annotated[str | None, Query(description="zona actual del nodo")] = None,
     limit: Annotated[int, Query(ge=1, le=200)] = 50,
     cursor: str | None = None,
 ) -> CaptureList:
-    if zone_id:
-        raise ApiError(400, "El filtro zone_id llega con las zonas (B4)")
     rows, next_cursor = await svc.list_captures(
-        db, node_id=node_id, trigger_type=trigger_type, since=since, until=until,
+        db, node_id=node_id, trigger_type=trigger_type, zone_id=zone_id, since=since, until=until,
         limit=limit, cursor=cursor,
     )
     return CaptureList(items=[CaptureOut.model_validate(r) for r in rows], next_cursor=next_cursor)

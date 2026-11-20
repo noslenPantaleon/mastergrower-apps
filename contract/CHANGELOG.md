@@ -1,5 +1,14 @@
 # Changelog del contrato
 
+## [contrato B / schema_version 1] — 2026-11-19
+- HTTP: `GET /events`, `GET/PATCH /events/{id}` ([`http/events.md`](http/events.md)) y
+  `GET /nodes`, `GET /nodes/{id}` de solo lectura ([`http/nodes.md`](http/nodes.md)).
+- La API genera `node_disconnected` al recibir el LWT (`node_state: "offline"`) y lo resuelve
+  cuando el nodo vuelve.
+- Agregados compatibles: `acknowledged_at`, `acknowledged_by`, `received_at` en eventos;
+  `status_ts`, `last_status` en nodos; código de error `conflict` (409).
+- `GET /captures?zone_id=` ya filtra (por la zona actual del nodo en la tabla `nodes`).
+
 ## [contrato B / schema_version 1, nombres en inglés] — 2026-11-18
 - **Todos los nombres del contrato pasan a inglés** (campos, valores de enumeraciones, rutas HTTP,
   códigos de error, tablas). Equivalencia con el .docx en [`NAMING.md`](NAMING.md).

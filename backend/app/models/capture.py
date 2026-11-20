@@ -3,16 +3,11 @@
 from datetime import datetime
 from typing import Any
 
-from sqlalchemy import JSON, BigInteger, DateTime, Integer, String, UniqueConstraint, func
-from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy import DateTime, String, UniqueConstraint, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.models.base import Base
-
-# JSONB en Postgres, JSON genérico en SQLite (tests)
-JsonType = JSON().with_variant(JSONB(), "postgresql")
-# BIGINT autoincremental en Postgres; SQLite solo autoincrementa INTEGER PRIMARY KEY
-IdType = BigInteger().with_variant(Integer(), "sqlite")
+from app.models.types import IdType, JsonType
 
 
 class Capture(Base):

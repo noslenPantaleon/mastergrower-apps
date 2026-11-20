@@ -14,7 +14,7 @@ rutas y tablas. Los comentarios, los logs y la documentación siguen en español
 | `zona_id` | `zone_id` |
 | `tipo_evento` | `event_type` |
 | `severidad` | `severity` |
-| `captura_id` | `capture_id` |
+| `captura_id` · `evento_id` | `capture_id` · `event_id` |
 | `detalle` | `detail` |
 | `accion` | `action` |
 | `parametros` | `params` |
@@ -27,6 +27,7 @@ rutas y tablas. Los comentarios, los logs y la documentación siguen en español
 | `estado_subida` / `ruta_imagen` | `upload_state` / `image_path` |
 | `estado_evento` · `timestamp_inicio` · `timestamp_resolucion` | `event_state` · `started_at` · `resolved_at` |
 | `ultima_conexion` · `modo_cultivo` · `ciclo_luz` | `last_seen` · `grow_mode` · `light_cycle` |
+| `tipo` (tabla nodos: cam, ctrl, disp) | `kind` |
 | `intervalo_captura_min` · `ventana_luz` · `calidad_jpeg` · `umbral_sospecha_hsv` | `capture_interval_min` · `light_window` · `jpeg_quality` · `hsv_suspicion_threshold` |
 
 ## Valores
@@ -53,5 +54,6 @@ rutas y tablas. Los comentarios, los logs y la documentación siguen en español
 | tablas `capturas`, `eventos`, `nodos`, `zonas`, `stream_sesiones` | `captures`, `events`, `nodes`, `zones`, `stream_sessions` |
 | paginación `limite` / `cursor` · filtros `desde` / `hasta` | `limit` / `cursor` · `since` / `until` |
 | errores `codigo` / `mensaje` / `detalle` | `code` / `message` / `detail` |
+| — (agregados) | evento: `acknowledged_at`, `acknowledged_by`, `received_at`; nodo: `status_ts`, `last_status`; error `conflict` (409) |
 
 Los temas MQTT (`growlab/{kind}/{id}/{status|state|event|cmd|cmd/ack}`) no cambian.

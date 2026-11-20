@@ -94,5 +94,12 @@ El Contrato .docx de referencia usa nombres en español: equivalencia en `contra
       descarta con 400/413/415/422, backoff 2→300 s con ±20 % (401/403 → 300 s). Sin SD sube desde RAM
       (3 intentos). Probado: API detenida → 5 pendientes → al volver suben las 5. `/storage` muestra stats.
       La URL de la API también usa la IP de la Mac (mismo problema de DHCP que el broker).
+- [x] **B2** — ingestor MQTT (`app/mqtt/ingestor.py`, aiomqtt, sesión persistente `mastergrow-api`,
+      tarea de fondo en el lifespan; lógica sin broker en `services/ingest.py`): `status`/`state` → tabla
+      `nodes`, `event` → tabla `events` (dedupe por node_id+event_type+ts; ts < 2020 → hora de recepción).
+      La API abre `node_disconnected` al llegar el LWT y lo resuelve cuando el nodo vuelve.
+      `GET/PATCH /events`, `GET /nodes` (solo lectura hasta B4), `/captures?zone_id=` ya filtra,
+      `/health` informa `mqtt`. 28 tests. Probado con la placa y con un nodo sintético (evento
+      publicado con la API caída llega al volver). Contrato: `contract/http/events.md` y `nodes.md`.
 - [ ] **C6** config remota (requiere B3) · C7 análisis HSV · C8 vista en vivo · C9 extras.
-      Backend: B2 ingestor MQTT · B3 config · B4 nodos/zonas · B5 stream · B6 contrato exportado. Luego nodo de pantalla D0–D6.
+      Backend: B3 config · B4 nodos/zonas · B5 stream · B6 contrato exportado. Luego nodo de pantalla D0–D6.

@@ -28,6 +28,8 @@ class Settings(BaseSettings):
     mqtt_port: int = 1883
     mqtt_api_user: str = "api"
     mqtt_api_password: str = ""
+    mqtt_client_id: str = "mastergrow-api"
+    mqtt_ingest_enabled: bool = True   # B2: estado y eventos de los nodos → base
 
     # Tokens (Contrato §5.1). Formato "nombre:token,..." — B4 los pasa a la base con hash.
     api_node_tokens: str = ""   # node_id:token  (p. ej. cam-01:...)

@@ -12,7 +12,9 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.errors import ApiError
+from app.core.pagination import decode_cursor, encode_cursor
 from app.models.capture import Capture, format_id
+from app.models.node import Node
 from app.schemas.capture import CaptureMetadata
 from app.storage.image_store import ImageStore
 
@@ -100,23 +102,12 @@ async def create_capture(
     return CreateResult(c, created=True)
 
 
-def _cursor(c: Capture) -> str:
-    return f"{int(_aware(c.timestamp).timestamp() * 1_000_000)}_{c.id}"
-
-
-def _parse_cursor(cursor: str) -> tuple[datetime, int]:
-    try:
-        us, _, cid = cursor.partition("_")
-        return datetime.fromtimestamp(int(us) / 1_000_000, UTC), int(cid)
-    except ValueError as e:
-        raise ApiError(400, "Cursor inválido") from e
-
-
 async def list_captures(
     db: AsyncSession,
     *,
     node_id: str | None,
     trigger_type: str | None,
+    zone_id: str | None = None,
     since: datetime | None,
     until: datetime | None,
     limit: int,
@@ -127,16 +118,19 @@ async def list_captures(
         q = q.where(Capture.node_id == node_id)
     if trigger_type:
         q = q.where(Capture.trigger_type == trigger_type)
+    if zone_id:
+        q = q.where(Capture.node_id.in_(select(Node.node_id).where(Node.zone_id == zone_id)))
     if since:
         q = q.where(Capture.timestamp >= since)
     if until:
         q = q.where(Capture.timestamp < until)
     if cursor:
-        cts, cid = _parse_cursor(cursor)
+        cts, cid = decode_cursor(cursor)
         q = q.where(or_(Capture.timestamp < cts, and_(Capture.timestamp == cts, Capture.id < cid)))
     q = q.order_by(Capture.timestamp.desc(), Capture.id.desc()).limit(limit + 1)
     rows = list((await db.execute(q)).scalars())
-    next_cursor = _cursor(rows[limit - 1]) if len(rows) > limit else None
+    last = rows[limit - 1] if len(rows) > limit else None
+    next_cursor = encode_cursor(last.timestamp, last.id) if last else None
     return rows[:limit], next_cursor
 
 

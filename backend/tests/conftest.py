@@ -19,6 +19,7 @@ from app.storage.image_store import LocalImageStore, get_image_store
 TOKEN_CAM = "tok-cam-01"
 TOKEN_CAM2 = "tok-cam-02"
 TOKEN_USER = "tok-user"
+USER = {"Authorization": f"Bearer {TOKEN_USER}"}
 
 
 @pytest.fixture
@@ -32,14 +33,24 @@ def settings(tmp_path) -> Settings:
 
 
 @pytest.fixture
-async def client(settings) -> AsyncIterator[AsyncClient]:
+async def maker() -> AsyncIterator[async_sessionmaker[AsyncSession]]:
     engine = create_async_engine(
         "sqlite+aiosqlite://", poolclass=StaticPool, connect_args={"check_same_thread": False}
     )
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
-    maker = async_sessionmaker(engine, expire_on_commit=False)
+    yield async_sessionmaker(engine, expire_on_commit=False)
+    await engine.dispose()
 
+
+@pytest.fixture
+async def db(maker) -> AsyncIterator[AsyncSession]:
+    async with maker() as s:
+        yield s
+
+
+@pytest.fixture
+async def client(settings, maker) -> AsyncIterator[AsyncClient]:
     async def _session() -> AsyncIterator[AsyncSession]:
         async with maker() as s:
             yield s
@@ -51,7 +62,6 @@ async def client(settings) -> AsyncIterator[AsyncClient]:
     app.dependency_overrides[get_image_store] = lambda: store
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
         yield c
-    await engine.dispose()
 
 
 def jpeg(w: int = 800, h: int = 600) -> bytes:
