@@ -115,5 +115,13 @@ El Contrato .docx de referencia usa nombres en español: equivalencia en `contra
       `GET /config`. Probado: cambio en vivo, 304 tras reboot (NVS), arranque con la API caída.
       **Ahora la config remota manda**: `CONFIG_MG_CAPTURE_INTERVAL_MIN` es solo el default; para pruebas
       `cam-01` tiene un override `capture_interval_min: 1` en la API.
-- [ ] C7 análisis HSV · C8 vista en vivo · C9 extras.
+- [x] **C7** — `components/services/local_vision` (hsv.c): `espressif/esp_jpeg` (tjpgd de la ROM, con escala)
+      decodifica a ~200 px de ancho en PSRAM; clasifica píxeles verde / amarillo-marrón / oscuro →
+      `local_analysis` en los metadatos (SD y API). Puntaje = amarillo/marrón dentro de la planta (0 si está
+      oscuro o hay < 5 % de planta). `plant_anomaly` al pasar el umbral (`hsv_suspicion_threshold`, rearme
+      al 80 %), `early_lights_off` si está oscuro dentro de la ventana de luz; una vez por episodio.
+      Sospechosa o con evento → `storage_queue_promote` (`_n_` → `_h_`, sube primero). `hybrid`/`model`
+      se comportan como `hsv` hasta que exista el modelo. Medido: 200×150 en ~340 ms desde SVGA.
+      Umbrales de color sin calibrar: hace falta un set de imágenes propias (sana / clorosis / seca).
+- [ ] C8 vista en vivo · C9 extras.
       Backend: B4 nodos/zonas · B5 stream · B6 contrato exportado. Luego nodo de pantalla D0–D6.

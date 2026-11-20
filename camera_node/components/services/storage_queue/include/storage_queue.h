@@ -49,6 +49,14 @@ esp_err_t storage_queue_set_ready(const char *id);
 /** @brief Reemplaza el .json de una captura (p. ej. para agregar el análisis local). */
 esp_err_t storage_queue_update_meta(const char *id, const char *meta_json);
 
+/**
+ * @brief Reemplaza los metadatos y pasa la captura a prioridad alta (análisis local sospechoso:
+ *        se sube primero y se borra último). El id cambia de "_n_" a "_h_".
+ *        Si ya era alta equivale a update_meta.
+ * @param out_id  recibe el id final (SQ_ID_MAX_LEN); puede ser el mismo puntero que id
+ */
+esp_err_t storage_queue_promote(const char *id, const char *meta_json, char *out_id);
+
 /** @brief Próxima a subir (prioridad alta y más antigua, sin las in_progress). ESP_ERR_NOT_FOUND si no hay. */
 esp_err_t storage_queue_peek(sq_entry_t *out);
 

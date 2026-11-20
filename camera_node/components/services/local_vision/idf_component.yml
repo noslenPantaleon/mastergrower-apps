@@ -1,0 +1,4 @@
+description: "MasterGrow - análisis local de imagen del nodo de cámara (heurística HSV)"
+dependencies:
+  idf: ">=6.0"
+  espressif/esp_jpeg: "^1.3.0"

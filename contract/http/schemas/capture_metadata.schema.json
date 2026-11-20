@@ -27,7 +27,26 @@
         "lux": { "type": ["number", "null"] }
       }
     },
-    "local_analysis": { "type": ["object", "null"] }
+    "local_analysis": {
+      "description": "Resultado del análisis local (Arquitectura §3.1.6). null si no se analizó.",
+      "type": ["object", "null"],
+      "properties": {
+        "mode": { "enum": ["hsv", "hybrid", "model"], "description": "modo que se aplicó" },
+        "requested_mode": { "enum": ["hsv", "hybrid", "model"], "description": "analysis_mode de la config" },
+        "green_ratio": { "type": "number", "minimum": 0, "maximum": 1 },
+        "yellow_brown_ratio": { "type": "number", "minimum": 0, "maximum": 1, "description": "dentro de la planta (verde + amarillo/marrón)" },
+        "brightness": { "type": "number", "minimum": 0, "maximum": 1 },
+        "dark_ratio": { "type": "number", "minimum": 0, "maximum": 1 },
+        "dark_scene": { "type": "boolean" },
+        "low_plant_coverage": { "type": "boolean", "description": "menos de 5 % de planta: el color no se evalúa" },
+        "suspicion_score": { "type": "number", "minimum": 0, "maximum": 1 },
+        "threshold": { "type": "number", "minimum": 0, "maximum": 1 },
+        "suspicious": { "type": "boolean" },
+        "analyzed_size": { "type": "string", "pattern": "^[0-9]+x[0-9]+$" },
+        "elapsed_ms": { "type": "integer", "minimum": 0 }
+      },
+      "additionalProperties": true
+    }
   },
   "additionalProperties": true,
   "examples": [{

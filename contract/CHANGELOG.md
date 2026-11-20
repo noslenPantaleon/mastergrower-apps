@@ -1,5 +1,15 @@
 # Changelog del contrato
 
+## [contrato B / schema_version 1] — 2026-11-20 (C7)
+- `local_analysis` de los metadatos de captura definido (HSV): `green_ratio`, `yellow_brown_ratio`,
+  `brightness`, `dark_ratio`, `dark_scene`, `low_plant_coverage`, `suspicion_score`, `threshold`,
+  `suspicious`, `mode`, `requested_mode`, `analyzed_size`, `elapsed_ms`.
+- Eventos `plant_anomaly` (al pasar a sospechoso; severidad `high` desde puntaje 0.6) y
+  `early_lights_off` (escena oscura dentro de la ventana de luz), uno por episodio.
+  `capture_id` va `null`: el nodo no conoce el id de la API al momento del evento.
+- Una captura sospechosa o que generó un evento se sube con prioridad (id local `_h_`); el campo
+  `priority` de los metadatos sigue indicando la prioridad del disparo.
+
 ## [contrato B / schema_version 1] — 2026-11-20 (C6)
 - `cam_status`: campo opcional `config_version` (versión de la config remota aplicada).
 - `refresh_config`: `params.version` opcional; si ya es la vigente el nodo responde `done` con

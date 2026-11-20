@@ -29,7 +29,7 @@ static const char *TAG = "upload_task";
 #define BACKOFF_MAX_S       300
 #define BACKOFF_AUTH_S      BACKOFF_MAX_S
 #define RAM_RETRIES         3
-#define RESP_MAX            512
+#define RESP_MAX            2048  /* la respuesta trae local_analysis: cortada no se puede parsear */
 
 typedef enum {
     UP_OK,          /* 201 / 200: la API ya la tiene */
@@ -301,6 +301,6 @@ esp_err_t upload_task_start(void)
         s_q = NULL;
         return ESP_ERR_NO_MEM;
     }
-    ESP_LOGI(TAG, "Subida a %s/capturas", mg_api_base_url());
+    ESP_LOGI(TAG, "Subida a %s/captures", mg_api_base_url());
     return ESP_OK;
 }

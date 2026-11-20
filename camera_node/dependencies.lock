@@ -30,7 +30,7 @@ dependencies:
       require: private
       version: '>=5.0'
     source:
-      registry_url: https://components.espressif.com
+      registry_url: https://components.espressif.com/
       type: service
     version: 1.3.2
   espressif/mqtt:
@@ -96,12 +96,13 @@ dependencies:
 direct_dependencies:
 - espressif/cjson
 - espressif/esp32-camera
+- espressif/esp_jpeg
 - idf
 - mg_api
 - mg_contract
 - mg_mqtt
 - mg_time
 - mg_wifi
-manifest_hash: 90f4972b611271dc1e513f1830650ca0dddb0318b734de02d215de41204e2677
+manifest_hash: 15098046f6450b28772ed4c7bce8b8b7b302f8257c4a782fe89479ac5f5f972f
 target: esp32s3
 version: 3.0.0

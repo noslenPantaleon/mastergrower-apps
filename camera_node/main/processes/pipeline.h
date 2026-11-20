@@ -15,6 +15,7 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/queue.h"
 #include "hal_camera.h"
+#include "local_vision.h"
 #include "mg_contract.h"
 #include "storage_queue.h"
 
@@ -56,8 +57,13 @@ typedef struct {
     uint16_t height;
     sensor_snapshot_t sensors;
     char sq_id[SQ_ID_MAX_LEN];   /**< id en la SD ("" si no se pudo guardar o no hay tarjeta) */
-    /* C7: resultado del análisis local */
+    /* Análisis local (C7). analyzed = false si se salteó (q_frame llena o JPEG inválido). */
     bool analyzed;
+    lv_hsv_result_t hsv;
+    char analysis_mode[8];       /**< modo pedido por la config (hsv | hybrid | model) */
+    float threshold;             /**< hsv_suspicion_threshold vigente */
+    bool suspicious;             /**< suspicion_score >= threshold → subida prioritaria */
+    bool flagged;                /**< generó un evento: también se sube primero */
 } capture_job_t;
 
 /** Profundidad de colas: valores iniciales (Arquitectura §5.2: 2 a 4 elementos). */

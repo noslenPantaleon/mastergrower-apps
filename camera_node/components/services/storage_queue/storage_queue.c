@@ -384,6 +384,70 @@ esp_err_t storage_queue_update_meta(const char *id, const char *meta_json)
     return err;
 }
 
+esp_err_t storage_queue_promote(const char *id, const char *meta_json, char *out_id)
+{
+    if (!s_sq.idx) {
+        return ESP_ERR_INVALID_STATE;
+    }
+    if (!id || !meta_json || !out_id) {
+        return ESP_ERR_INVALID_ARG;
+    }
+    xSemaphoreTake(s_sq.lock, portMAX_DELAY);
+    int i = idx_find(id);
+    if (i < 0) {
+        xSemaphoreGive(s_sq.lock);
+        return ESP_ERR_NOT_FOUND;
+    }
+    if (s_sq.idx[i].high) {
+        xSemaphoreGive(s_sq.lock);
+        if (out_id != id) {
+            strlcpy(out_id, id, SQ_ID_MAX_LEN);
+        }
+        return storage_queue_update_meta(id, meta_json);
+    }
+
+    char new_id[SQ_ID_MAX_LEN];
+    strlcpy(new_id, id, sizeof(new_id));
+    char *mark = strstr(new_id, "_n_");
+    if (!mark) {
+        xSemaphoreGive(s_sq.lock);
+        return ESP_ERR_INVALID_ARG;
+    }
+    mark[1] = 'h';
+
+    /* Orden seguro ante cortes: .json nuevo completo → .jpg renombrado → .json viejo borrado.
+     * Un corte en el medio deja un .json huérfano que rebuild_index limpia. */
+    char tmp[PATH_MAX_LEN], new_json[PATH_MAX_LEN], old_jpg[PATH_MAX_LEN], new_jpg[PATH_MAX_LEN],
+        old_json[PATH_MAX_LEN];
+    path_of(tmp, new_id, ".jtm");
+    path_of(new_json, new_id, ".json");
+    path_of(old_jpg, id, ".jpg");
+    path_of(new_jpg, new_id, ".jpg");
+    path_of(old_json, id, ".json");
+    esp_err_t err = write_file(tmp, meta_json, strlen(meta_json));
+    if (err == ESP_OK && rename(tmp, new_json) != 0) {
+        err = ESP_FAIL;
+    }
+    if (err == ESP_OK && rename(old_jpg, new_jpg) != 0) {
+        unlink(new_json);
+        err = ESP_FAIL;
+    }
+    if (err != ESP_OK) {
+        unlink(tmp);
+        xSemaphoreGive(s_sq.lock);
+        ESP_LOGE(TAG, "No se pudo promover %s (errno %d)", id, errno);
+        return err;
+    }
+    unlink(old_json);
+    strlcpy(s_sq.idx[i].id, new_id, sizeof(s_sq.idx[i].id));
+    s_sq.idx[i].high = true;
+    xSemaphoreGive(s_sq.lock);
+
+    ESP_LOGI(TAG, "%s → %s (prioridad alta)", id, new_id);
+    strlcpy(out_id, new_id, SQ_ID_MAX_LEN);
+    return ESP_OK;
+}
+
 esp_err_t storage_queue_peek(sq_entry_t *out)
 {
     if (!s_sq.idx) {
