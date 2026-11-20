@@ -1,5 +1,16 @@
 # Changelog del contrato
 
+## [contrato B / schema_version 1] — 2026-11-20
+- HTTP: `GET/PUT /config/global`, `GET /config/nodes/{id}`, `GET/PUT/DELETE
+  /config/nodes/{id}/override` ([`http/config.md`](http/config.md)).
+- Parámetros de cámara con tipos, rangos y defaults en
+  [`http/schemas/cam_config.schema.json`](http/schemas/cam_config.schema.json). Agregados respecto
+  del Contrato §7: `utc_offset_min`, `resolution_full`, `min_trigger_interval_s`.
+  `light_window` es un objeto `{start, end}` (HH:MM, hora local).
+- Versión de configuración = número de la última revisión que afecta al nodo (tabla
+  `config_revisions`). `ETag` / `If-None-Match` → `304` en `GET /config/nodes/{id}`.
+- La API publica `refresh_config` con `params.version` a los nodos afectados tras cada cambio.
+
 ## [contrato B / schema_version 1] — 2026-11-19
 - HTTP: `GET /events`, `GET/PATCH /events/{id}` ([`http/events.md`](http/events.md)) y
   `GET /nodes`, `GET /nodes/{id}` de solo lectura ([`http/nodes.md`](http/nodes.md)).

@@ -101,5 +101,11 @@ El Contrato .docx de referencia usa nombres en español: equivalencia en `contra
       `GET/PATCH /events`, `GET /nodes` (solo lectura hasta B4), `/captures?zone_id=` ya filtra,
       `/health` informa `mqtt`. 28 tests. Probado con la placa y con un nodo sintético (evento
       publicado con la API caída llega al volver). Contrato: `contract/http/events.md` y `nodes.md`.
-- [ ] **C6** config remota (requiere B3) · C7 análisis HSV · C8 vista en vivo · C9 extras.
-      Backend: B3 config · B4 nodos/zonas · B5 stream · B6 contrato exportado. Luego nodo de pantalla D0–D6.
+- [x] **B3** — configuración override → global → default (`schemas/config.py` `CamParams` = fuente de
+      parámetros, defaults iguales a Kconfig del firmware, lo verifica un test). Tablas `config_global`,
+      `config_node`, `config_revisions` (versión = última revisión global o del nodo, entero creciente).
+      `GET/PUT /config/global`, `GET /config/nodes/{id}` (ETag → 304; un nodo solo lee la suya),
+      `GET/PUT/DELETE .../override` (PUT parcial, `null` borra). Tras cada cambio publica `refresh_config`
+      con `params.version` (hoy la placa lo rechaza `unsupported_action`: lo implementa C6). 38 tests.
+- [ ] **C6** config remota (B3 listo) · C7 análisis HSV · C8 vista en vivo · C9 extras.
+      Backend: B4 nodos/zonas · B5 stream · B6 contrato exportado. Luego nodo de pantalla D0–D6.

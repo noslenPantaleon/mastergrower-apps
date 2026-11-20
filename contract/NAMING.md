@@ -28,7 +28,10 @@ rutas y tablas. Los comentarios, los logs y la documentación siguen en español
 | `estado_evento` · `timestamp_inicio` · `timestamp_resolucion` | `event_state` · `started_at` · `resolved_at` |
 | `ultima_conexion` · `modo_cultivo` · `ciclo_luz` | `last_seen` · `grow_mode` · `light_cycle` |
 | `tipo` (tabla nodos: cam, ctrl, disp) | `kind` |
-| `intervalo_captura_min` · `ventana_luz` · `calidad_jpeg` · `umbral_sospecha_hsv` | `capture_interval_min` · `light_window` · `jpeg_quality` · `hsv_suspicion_threshold` |
+| `intervalo_captura_min` · `ventana_luz` · `calidad_jpeg` · `umbral_sospecha_hsv` | `capture_interval_min` · `light_window` (`{start, end}`) · `jpeg_quality` · `hsv_suspicion_threshold` |
+| `resolucion` (config) · `stream_resolucion_max` | `resolution` (+ `resolution_full`, agregado) · `stream_resolution_max` |
+| tablas `config_global` · `config_nodo` (`clave`, `valor`, `actualizado`) | `config_global` · `config_node` (`key`, `value`, `updated_at`) + `config_revisions` (agregada) |
+| `/config/global`, `/config/nodos/{id}/override` | `/config/global`, `/config/nodes/{id}/override` |
 
 ## Valores
 

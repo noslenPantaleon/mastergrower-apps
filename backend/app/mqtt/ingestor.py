@@ -7,6 +7,7 @@ proceso aparte (dos clientes con el mismo identificador se patean entre sí).
 """
 
 import asyncio
+import json
 import logging
 import random
 from datetime import UTC, datetime
@@ -29,6 +30,7 @@ class MqttIngestor:
         self.last_message_at: datetime | None = None
         self.messages = 0
         self._task: asyncio.Task | None = None
+        self._client: aiomqtt.Client | None = None
 
     def start(self) -> None:
         self._task = asyncio.create_task(self._run(), name="mqtt-ingestor")
@@ -50,6 +52,7 @@ class MqttIngestor:
                     username=self._s.mqtt_api_user, password=self._s.mqtt_api_password or None,
                     identifier=self._s.mqtt_client_id, clean_session=False, keepalive=30,
                 ) as client:
+                    self._client = client
                     for t in TOPICS:
                         await client.subscribe(t, qos=1)
                     self.connected, backoff = True, 1.0
@@ -59,7 +62,7 @@ class MqttIngestor:
                         await self._handle(msg)
             except aiomqtt.MqttError as e:
                 was = self.connected
-                self.connected = False
+                self.connected, self._client = False, None
                 wait = backoff * random.uniform(0.8, 1.2)
                 (log.warning if was else log.info)(
                     "Ingestor MQTT sin conexión (%s); reintento en %.0f s", e, wait)
@@ -77,3 +80,25 @@ class MqttIngestor:
         except Exception:
             # Un mensaje que rompe algo (p. ej. base caída) no debe matar al ingestor
             log.exception("Ingestor MQTT: error procesando %s", msg.topic.value)
+
+    async def publish(self, topic: str, message: dict, qos: int = 1) -> bool:
+        """Publica con el mismo cliente. Mejor esfuerzo: False si no hay conexión."""
+        client = self._client
+        if client is None:
+            return False
+        try:
+            await client.publish(topic, json.dumps(message, separators=(",", ":")), qos=qos)
+            return True
+        except aiomqtt.MqttError as e:
+            log.warning("No se pudo publicar en %s: %s", topic, e)
+            return False
+
+
+def command(node_id: str, action: str, cmd_id: str, params: dict | None = None) -> dict:
+    """Mensaje cmd según contract/mqtt/schemas/cmd.schema.json (emisor: la API)."""
+    msg = {"schema_version": 1, "node_id": "api",
+           "ts": datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
+           "action": action, "cmd_id": cmd_id}
+    if params is not None:
+        msg["params"] = params
+    return msg

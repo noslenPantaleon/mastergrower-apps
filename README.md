@@ -32,6 +32,8 @@ curl http://localhost:8000/api/v1/health
 - `./scripts/cam_cmd.sh capture_now [cam-01]` envía un comando y muestra el `cmd/ack`.
 - Estado de los nodos y eventos (los guarda el ingestor MQTT de la API):
   `GET /api/v1/nodes`, `GET /api/v1/events`, `PATCH /api/v1/events/{id}` (ver `contract/http/`).
+- Configuración remota de los nodos (override → global → default): `GET/PUT /api/v1/config/global`,
+  `GET/PUT/DELETE /api/v1/config/nodes/{id}/override` (ver `contract/http/config.md`).
 - Capturas subidas por los nodos: `http://localhost:8000/gallery?token=<token de usuario>`
   (`API_USER_TOKENS` en `.env`). Documentación interactiva: `http://localhost:8000/docs`.
 - Tests y lint: `uv run pytest` · `uv run ruff check .`. Migraciones: `uv run alembic revision --autogenerate -m "..."`

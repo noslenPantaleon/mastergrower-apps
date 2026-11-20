@@ -2,7 +2,8 @@
 
 from app.models.base import Base
 from app.models.capture import Capture
+from app.models.config import ConfigGlobal, ConfigNode, ConfigRevision
 from app.models.event import Event
 from app.models.node import Node
 
-__all__ = ["Base", "Capture", "Event", "Node"]
+__all__ = ["Base", "Capture", "ConfigGlobal", "ConfigNode", "ConfigRevision", "Event", "Node"]
