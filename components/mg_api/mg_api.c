@@ -185,12 +185,15 @@ esp_err_t mg_api_post_multipart(const char *path, const mg_api_part_t *parts, si
     return err;
 }
 
-esp_err_t mg_api_get(const char *path, size_t max_body, mg_api_resp_t *resp)
+esp_err_t mg_api_get(const char *path, const char *if_none_match, size_t max_body, mg_api_resp_t *resp)
 {
     ESP_RETURN_ON_FALSE(path && resp, ESP_ERR_INVALID_ARG, TAG, "argumentos");
     *resp = (mg_api_resp_t){ 0 };
     esp_http_client_handle_t c = open_client(path, HTTP_METHOD_GET);
     ESP_RETURN_ON_FALSE(c, ESP_ERR_NO_MEM, TAG, "no se pudo crear el cliente");
+    if (if_none_match && if_none_match[0]) {
+        esp_http_client_set_header(c, "If-None-Match", if_none_match);
+    }
 
     esp_err_t err = esp_http_client_open(c, 0);
     if (err == ESP_OK && esp_http_client_fetch_headers(c) < 0) {

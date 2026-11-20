@@ -26,5 +26,7 @@
 #define SYS_NET_TASK_PRIO      5
 #define SYS_UPLOAD_STACK       6144   /* esp_http_client + cJSON de la respuesta */
 #define SYS_UPLOAD_PRIO        4      /* debajo de net_task: MQTT (comandos, LWT) primero */
+#define SYS_CONFIG_SYNC_STACK  6144   /* esp_http_client + cJSON de la config */
+#define SYS_CONFIG_SYNC_PRIO   3      /* debajo de upload: la config cambia poco */
 #define SYS_DEBUG_HTTP_STACK   8192
 #define SYS_DEBUG_HTTP_PRIO    5

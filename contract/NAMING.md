@@ -44,7 +44,7 @@ rutas y tablas. Los comentarios, los logs y la documentación siguen en español
 | prioridad | `normal`, `alta` | `normal`, `high` |
 | acción | `set_actuador`, `set_modo` (el resto ya en inglés) | `set_actuator`, `set_mode` |
 | estado del evento | `abierto`, `reconocido`, `resuelto` | `open`, `acknowledged`, `resolved` |
-| motivo de rechazo (ack) | — | `unsupported_schema_version`, `invalid_format`, `expired`, `unsupported_action`, `outside_light_window`, `min_interval`, `queue_full`, `camera_error`, `out_of_memory` |
+| motivo de rechazo (ack) | — | `unsupported_schema_version`, `invalid_format`, `expired`, `unsupported_action`, `outside_light_window`, `min_interval`, `queue_full`, `camera_error`, `out_of_memory`, `config_unavailable` (refresh_config sin respuesta de la API) |
 
 ## Rutas HTTP y tablas
 

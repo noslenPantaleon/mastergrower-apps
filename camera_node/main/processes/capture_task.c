@@ -21,6 +21,13 @@ static const char *TAG = "capture_task";
 #define CAPTURE_RETRIES     2
 #define CAPTURE_TIMEOUT_MS  3000
 
+static volatile uint8_t s_quality_wanted;  /**< 0 = sin pedido */
+
+void capture_task_set_quality(uint8_t jpeg_quality)
+{
+    s_quality_wanted = jpeg_quality;
+}
+
 static esp_err_t capture_with_retry(hal_frame_t *f)
 {
     esp_err_t err = ESP_FAIL;
@@ -80,6 +87,15 @@ static void capture_task(void *arg)
 
         hal_camera_info_t info;
         hal_camera_get_info(&info);
+        uint8_t q = s_quality_wanted;
+        if (q && info.jpeg_quality != q) {
+            esp_err_t qerr = hal_camera_set_quality(q);
+            if (qerr == ESP_OK) {
+                ESP_LOGI(TAG, "Calidad JPEG %u → %u", info.jpeg_quality, q);
+            } else {
+                ESP_LOGW(TAG, "No se pudo cambiar la calidad JPEG: %s", esp_err_to_name(qerr));
+            }
+        }
         if (info.resolution != t.resolution) {
             esp_err_t err = hal_camera_set_resolution(t.resolution);
             if (err != ESP_OK) {

@@ -74,7 +74,7 @@ El Contrato .docx de referencia usa nombres en español: equivalencia en `contra
       libera el fb) → q_frame → analysis_task (pasa de largo hasta C7) → pipeline_job_done (log + free; en C4 → SD).
       capture_now es asíncrono: el ack "done" lo manda capture_task. net_task llama al handler ANTES de
       responder, así un rechazo nunca va precedido de "accepted". Probado en placa.
-      `sdkconfig.defaults.local` del usuario tiene CONFIG_MG_CAPTURE_INTERVAL_MIN=1 para pruebas.
+      (El intervalo de pruebas de 1 min ahora va como override en la API, ver C6.)
 - [x] **C4** — `node_hal/hal_storage` (SDSPI + FATFS en /sd, nunca formatea, pull-ups internos + 3 reintentos)
       y servicio `components/services/storage_queue` (agregado con EXTRA_COMPONENT_DIRS): <id>.jpg + <id>.json en
       /sd/mg/pend, escritura atómica (temporales + rename), índice en PSRAM reconstruido al arrancar,
@@ -107,5 +107,13 @@ El Contrato .docx de referencia usa nombres en español: equivalencia en `contra
       `GET/PUT /config/global`, `GET /config/nodes/{id}` (ETag → 304; un nodo solo lee la suya),
       `GET/PUT/DELETE .../override` (PUT parcial, `null` borra). Tras cada cambio publica `refresh_config`
       con `params.version` (hoy la placa lo rechaza `unsupported_action`: lo implementa C6). 38 tests.
-- [ ] **C6** config remota (B3 listo) · C7 análisis HSV · C8 vista en vivo · C9 extras.
+- [x] **C6** — servicio `config_store` (components/services: config efectiva + versión en NVS, valida cada
+      campo con los rangos del contrato; inválido → default del firmware) y `config_sync_task` (núcleo 0,
+      prio 3): GET `/config/nodes/{id}` con If-None-Match al arrancar, con `refresh_config` y cada
+      `CONFIG_MG_CONFIG_SYNC_PERIOD_S` (900 s); backoff 10 s→período. Aplica a trigger_manager y a la
+      calidad JPEG (la cambia capture_task, nunca otra tarea). Status publica `config_version`. Debug:
+      `GET /config`. Probado: cambio en vivo, 304 tras reboot (NVS), arranque con la API caída.
+      **Ahora la config remota manda**: `CONFIG_MG_CAPTURE_INTERVAL_MIN` es solo el default; para pruebas
+      `cam-01` tiene un override `capture_interval_min: 1` en la API.
+- [ ] C7 análisis HSV · C8 vista en vivo · C9 extras.
       Backend: B4 nodos/zonas · B5 stream · B6 contrato exportado. Luego nodo de pantalla D0–D6.

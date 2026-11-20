@@ -1,5 +1,11 @@
 # Changelog del contrato
 
+## [contrato B / schema_version 1] — 2026-11-20 (C6)
+- `cam_status`: campo opcional `config_version` (versión de la config remota aplicada).
+- `refresh_config`: `params.version` opcional; si ya es la vigente el nodo responde `done` con
+  `reason: "already_current"` sin consultar. Si no puede consultar la API: `rejected` con
+  `reason: "config_unavailable"`.
+
 ## [contrato B / schema_version 1] — 2026-11-20
 - HTTP: `GET/PUT /config/global`, `GET /config/nodes/{id}`, `GET/PUT/DELETE
   /config/nodes/{id}/override` ([`http/config.md`](http/config.md)).

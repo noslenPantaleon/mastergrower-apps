@@ -6,6 +6,13 @@
  */
 #pragma once
 
+#include <stdint.h>
 #include "esp_err.h"
 
 esp_err_t capture_task_start(void);
+
+/**
+ * @brief Calidad JPEG a usar desde la próxima captura (config remota). La aplica la propia
+ *        capture_task antes de capturar, así el sensor nunca se toca desde otra tarea.
+ */
+void capture_task_set_quality(uint8_t jpeg_quality);

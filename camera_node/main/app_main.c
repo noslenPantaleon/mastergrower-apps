@@ -1,7 +1,7 @@
 /**
  * @file app_main.c
- * @brief Nodo de cámara — arranque: cámara (C1), WiFi, net_task MQTT con status/LWT y
- *        comandos (C2) y, en desarrollo, el servidor HTTP de depuración.
+ * @brief Nodo de cámara — arranque: config (NVS, C6), microSD, cámara, pipeline, WiFi,
+ *        net_task (MQTT), config_sync, upload_task y, en desarrollo, el servidor de depuración.
  *
  * Las fases siguientes agregan aquí el arranque de las tareas del pipeline
  * (trigger_manager, capture_task, analysis_task, upload_task, ...).
@@ -21,6 +21,7 @@
 #include "nvs_flash.h"
 
 #include "app_state.h"
+#include "config_store.h"
 #include "default_params.h"
 #include "hal_camera.h"
 #include "hal_storage.h"
@@ -29,6 +30,7 @@
 #include "mg_wifi.h"
 #include "processes/analysis_task.h"
 #include "processes/capture_task.h"
+#include "processes/config_sync_task.h"
 #include "processes/net_task.h"
 #include "processes/pipeline.h"
 #include "processes/trigger_manager.h"
@@ -61,14 +63,37 @@ static void log_memory(const char *when)
              (unsigned)heap_caps_get_minimum_free_size(MALLOC_CAP_SPIRAM));
 }
 
+/** Valores por defecto del firmware: último nivel de override → global → default (Contrato §7). */
+static void init_config(void)
+{
+    node_config_t def = {
+        .capture_interval_min = DEF_CAPTURE_INTERVAL_MIN,
+        .utc_offset_min = DEF_UTC_OFFSET_MIN,
+        .jpeg_quality = DEF_JPEG_QUALITY,
+        .hsv_suspicion_threshold = DEF_HSV_SUSPICION_THRESHOLD,
+        .min_trigger_interval_s = DEF_MIN_TRIGGER_INTERVAL_S,
+        .stream_fps_max = DEF_STREAM_FPS_MAX,
+        .stream_ttl_max_s = DEF_STREAM_TTL_MAX_S,
+    };
+    strlcpy(def.light_start, DEF_LIGHT_WINDOW_START, sizeof(def.light_start));
+    strlcpy(def.light_end, DEF_LIGHT_WINDOW_END, sizeof(def.light_end));
+    strlcpy(def.analysis_mode, DEF_ANALYSIS_MODE, sizeof(def.analysis_mode));
+    strlcpy(def.resolution, DEF_RESOLUTION, sizeof(def.resolution));
+    strlcpy(def.resolution_full, DEF_RESOLUTION_FULL, sizeof(def.resolution_full));
+    strlcpy(def.stream_resolution_max, DEF_STREAM_RES_MAX, sizeof(def.stream_resolution_max));
+    ESP_ERROR_CHECK(config_store_init(&def));
+}
+
 static esp_err_t init_camera(void)
 {
+    node_config_t c;
+    config_store_get(&c);  // la última config guardada (o los defaults)
     hal_camera_config_t cfg = HAL_CAMERA_CONFIG_DEFAULT();
-    if (!hal_camera_res_from_name(DEF_RESOLUTION, &cfg.resolution)) {
-        ESP_LOGW(TAG, "Resolución \"%s\" inválida, se usa SVGA", DEF_RESOLUTION);
+    if (!hal_camera_res_from_name(c.resolution, &cfg.resolution)) {
+        ESP_LOGW(TAG, "Resolución \"%s\" inválida, se usa SVGA", c.resolution);
         cfg.resolution = HAL_CAM_RES_SVGA;
     }
-    cfg.jpeg_quality = DEF_JPEG_QUALITY;
+    cfg.jpeg_quality = c.jpeg_quality;
 
     esp_err_t err = hal_camera_init(&cfg);
     if (err != ESP_OK) {
@@ -160,8 +185,10 @@ static void init_storage(void)
 
 static esp_err_t start_pipeline(void)
 {
+    node_config_t c;
+    config_store_get(&c);
     trigger_config_t tcfg;
-    trigger_config_default(&tcfg);
+    config_sync_to_trigger(&c, &tcfg);
 
     esp_err_t err = pipeline_init();
     if (err == ESP_OK) {
@@ -219,6 +246,11 @@ static esp_err_t start_network(void)
     net_task_register_cmd(MG_ACTION_CAPTURE_NOW, cmd_capture_now);
     net_task_register_cmd(MG_ACTION_REBOOT, cmd_reboot);
     ESP_ERROR_CHECK(net_task_start());
+    /* Config remota: al arrancar, con refresh_config y periódica. Sin red queda la de NVS. */
+    err = config_sync_task_start();
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "config_sync no iniciada: %s", esp_err_to_name(err));
+    }
     /* Sube lo pendiente de la SD aunque la cámara haya fallado en este arranque. */
     err = upload_task_start();
     if (err != ESP_OK) {
@@ -247,6 +279,7 @@ void app_main(void)
     ESP_LOGI(TAG, "PSRAM: %u KB", (unsigned)(psram / 1024));
 
     ESP_ERROR_CHECK(init_nvs());
+    init_config();
     ESP_ERROR_CHECK(esp_netif_init());
     ESP_ERROR_CHECK(esp_event_loop_create_default());
     log_memory("arranque");

@@ -94,6 +94,7 @@ dependencies:
       type: local
     version: 0.1.0
 direct_dependencies:
+- espressif/cjson
 - espressif/esp32-camera
 - idf
 - mg_api
@@ -101,6 +102,6 @@ direct_dependencies:
 - mg_mqtt
 - mg_time
 - mg_wifi
-manifest_hash: 8f1e75169d2a990be88722ec1e89bb568faaf68d339195c188683f283d7f795e
+manifest_hash: 90f4972b611271dc1e513f1830650ca0dddb0318b734de02d215de41204e2677
 target: esp32s3
 version: 3.0.0

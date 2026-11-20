@@ -18,6 +18,14 @@ menu "MasterGrow - Nodo de cámara"
             El status se publica al conectar y en cada cambio; además se refresca
             periódicamente (RSSI, espacio en SD).
 
+    config MG_CONFIG_SYNC_PERIOD_S
+        int "Período de consulta de la config remota (s)"
+        default 900
+        range 60 86400
+        help
+            Además de al arrancar y al recibir refresh_config. La consulta es condicional
+            (If-None-Match): si no cambió, la API responde 304 sin cuerpo.
+
     config MG_CAPTURE_RES
         string "Resolución de captura rutinaria"
         default "SVGA"

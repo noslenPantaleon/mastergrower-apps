@@ -8,6 +8,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "app_state.h"
+#include "config_store.h"
 #include "esp_log.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/queue.h"
@@ -111,7 +112,9 @@ static void publish_status(void)
         .last_capture = t ? last : NULL,
         .sd_free_pct = hal_storage_free_pct(),  // -1 → null si no hay tarjeta
         .rssi = mg_wifi_get_rssi(),
-        .zone_id = NULL,     // C6: config remota
+        .zone_id = NULL,     // la zona la asigna la API (B4); el nodo no la conoce todavía
+        .has_config_version = true,
+        .config_version = config_store_version(),
     };
     char *json = mg_msg_cam_status(SYS_NODE_ID, &st);
     if (json) {

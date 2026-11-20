@@ -14,7 +14,8 @@
     "last_capture": { "type": ["string", "null"], "format": "date-time" },
     "sd_free_pct": { "type": ["integer", "null"], "minimum": 0, "maximum": 100 },
     "rssi": { "type": ["integer", "null"] },
-    "zone_id": { "type": ["string", "null"] }
+    "zone_id": { "type": ["string", "null"] },
+    "config_version": { "type": "integer", "minimum": 0, "description": "versión de la config remota aplicada (0 = valores por defecto)" }
   },
   "additionalProperties": true,
   "examples": [{

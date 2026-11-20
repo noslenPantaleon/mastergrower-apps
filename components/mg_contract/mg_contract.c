@@ -105,6 +105,9 @@ char *mg_msg_cam_status(const char *node_id, const mg_cam_status_t *st)
         cJSON_AddNullToObject(o, "rssi");
     }
     add_str_or_null(o, "zone_id", st->zone_id);
+    if (st->has_config_version) {
+        cJSON_AddNumberToObject(o, "config_version", st->config_version);
+    }
     return mg_msg_to_string(o);
 }
 

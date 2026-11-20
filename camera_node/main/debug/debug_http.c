@@ -12,6 +12,7 @@
 #include "esp_log.h"
 #include "esp_timer.h"
 #include "hal_camera.h"
+#include "config_store.h"
 #include "hal_storage.h"
 #include "storage_queue.h"
 #include "mg_wifi.h"
@@ -194,6 +195,20 @@ static esp_err_t storage_get(httpd_req_t *req)
     return httpd_resp_send_chunk(req, NULL, 0);
 }
 
+/** GET /config: configuración efectiva aplicada (versión + valores, como la guarda NVS). */
+static esp_err_t config_get(httpd_req_t *req)
+{
+    char *json = config_store_to_json();
+    if (!json) {
+        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "sin memoria");
+        return ESP_FAIL;
+    }
+    httpd_resp_set_type(req, "application/json");
+    esp_err_t err = httpd_resp_sendstr(req, json);
+    free(json);
+    return err;
+}
+
 static esp_err_t storage_img_get(httpd_req_t *req)
 {
     char query[96], id[SQ_ID_MAX_LEN];
@@ -238,6 +253,7 @@ esp_err_t debug_http_start(void)
         { .uri = "/control", .method = HTTP_GET, .handler = control_get },
         { .uri = "/storage", .method = HTTP_GET, .handler = storage_get },
         { .uri = "/storage/img", .method = HTTP_GET, .handler = storage_img_get },
+        { .uri = "/config", .method = HTTP_GET, .handler = config_get },
     };
     for (size_t i = 0; i < sizeof(uris) / sizeof(uris[0]); i++) {
         httpd_register_uri_handler(s_server, &uris[i]);

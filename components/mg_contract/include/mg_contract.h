@@ -90,6 +90,8 @@ typedef struct {
     int sd_free_pct;            /**< -1 = desconocido (null) */
     int rssi;                    /**< 0 = desconocido (null) */
     const char *zone_id;         /**< NULL = sin asignar */
+    bool has_config_version;     /**< false = no se publica config_version (p. ej. en el LWT) */
+    uint32_t config_version;     /**< versión de la config aplicada (0 = valores por defecto) */
 } mg_cam_status_t;
 
 char *mg_msg_cam_status(const char *node_id, const mg_cam_status_t *st);

@@ -1,0 +1,4 @@
+description: "MasterGrow - configuración efectiva del nodo de cámara en NVS (Contrato §7)"
+dependencies:
+  idf: ">=6.0"
+  espressif/cjson: "^1.7.19"

@@ -31,7 +31,9 @@ con la config en flash y la compara para saber si tiene la última.
 ### Aviso a los nodos
 
 Tras un cambio, la API publica en `growlab/cam/{id}/cmd` la acción `refresh_config` con
-`params: {"version": N}` (a todos los nodos de cámara conocidos si el cambio es global, o solo al
+`params: {"version": N}` (el nodo responde `done` cuando la aplicó, `done` + `already_current`
+si ya la tenía, o `rejected` + `config_unavailable` si no pudo consultar, y publica la versión
+aplicada en `status.config_version`) (a todos los nodos de cámara conocidos si el cambio es global, o solo al
 nodo del override). Es un aviso de mejor esfuerzo: el nodo además consulta al arrancar y de forma
 periódica.
 

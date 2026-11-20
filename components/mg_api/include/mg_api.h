@@ -42,8 +42,11 @@ typedef struct {
 esp_err_t mg_api_post_multipart(const char *path, const mg_api_part_t *parts, size_t n_parts,
                                 const char *idempotency_key, size_t max_body, mg_api_resp_t *resp);
 
-/** @brief GET a <base><path>. Mismas reglas de retorno que mg_api_post_multipart. */
-esp_err_t mg_api_get(const char *path, size_t max_body, mg_api_resp_t *resp);
+/**
+ * @brief GET a <base><path>. Mismas reglas de retorno que mg_api_post_multipart.
+ * @param if_none_match  ETag para un GET condicional (la API responde 304 si no cambió) o NULL
+ */
+esp_err_t mg_api_get(const char *path, const char *if_none_match, size_t max_body, mg_api_resp_t *resp);
 
 void mg_api_resp_free(mg_api_resp_t *resp);
 
