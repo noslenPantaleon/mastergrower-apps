@@ -1,0 +1,25 @@
+menu "MasterGrow - API HTTP"
+
+    config MG_API_BASE_URL
+        string "URL base de la API (con /api/v1)"
+        default "http://192.168.1.10:8000/api/v1"
+        help
+            http:// en la LAN (TLS desactivado por ahora). Sin barra final.
+
+    config MG_API_TOKEN
+        string "Token del nodo (Authorization: Bearer)"
+        default ""
+        help
+            Debe coincidir con el de este node_id en API_NODE_TOKENS del backend.
+            En C6/B4 pasa a NVS, emitido por POST /nodos.
+
+    config MG_API_TIMEOUT_MS
+        int "Timeout de red por operación (ms)"
+        default 15000
+        range 1000 120000
+
+    config MG_API_USE_TLS
+        bool "Usar HTTPS con el bundle de certificados de IDF"
+        default n
+
+endmenu

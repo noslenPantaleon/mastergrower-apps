@@ -10,35 +10,35 @@
 #define ARRAY_LEN(a) (sizeof(a) / sizeof((a)[0]))
 
 static const char *const k_kind[] = { "cam", "ctrl", "disp" };
-static const char *const k_estado[] = { "arrancando", "operativo", "autonomo", "error", "fuera_de_linea" };
-static const char *const k_sev[] = { "baja", "media", "alta" };
-static const char *const k_evt[] = { "luz_apagada_anticipada", "anomalia_planta", "sd_llena", "error_camara",
-                                     "nodo_sin_conexion" };
-static const char *const k_trigger[] = { "timer", "evento_sensor", "comando_remoto", "post_actuacion",
-                                         "calendario" };
-static const char *const k_accion[] = { "desconocida", "capture_now", "refresh_config", "reboot", "start_stream",
-                                        "stop_stream", "set_actuador", "set_modo" };
+static const char *const k_state[] = { "booting", "operational", "autonomous", "error", "offline" };
+static const char *const k_sev[] = { "low", "medium", "high" };
+static const char *const k_evt[] = { "early_lights_off", "plant_anomaly", "sd_full", "camera_error",
+                                     "node_disconnected" };
+static const char *const k_trigger[] = { "timer", "sensor_event", "remote_command", "post_actuation",
+                                         "schedule" };
+static const char *const k_action[] = { "unknown", "capture_now", "refresh_config", "reboot", "start_stream",
+                                        "stop_stream", "set_actuator", "set_mode" };
 static const char *const k_ack[] = { "accepted", "rejected", "done" };
 
 #define ENUM_STR(table, v) (((unsigned)(v) < ARRAY_LEN(table)) ? (table)[(v)] : "?")
 
-const char *mg_estado_nodo_str(mg_estado_nodo_t v) { return ENUM_STR(k_estado, v); }
-const char *mg_severidad_str(mg_severidad_t v) { return ENUM_STR(k_sev, v); }
-const char *mg_tipo_evento_str(mg_tipo_evento_t v) { return ENUM_STR(k_evt, v); }
+const char *mg_node_state_str(mg_node_state_t v) { return ENUM_STR(k_state, v); }
+const char *mg_severity_str(mg_severity_t v) { return ENUM_STR(k_sev, v); }
+const char *mg_event_type_str(mg_event_type_t v) { return ENUM_STR(k_evt, v); }
 const char *mg_trigger_type_str(mg_trigger_type_t v) { return ENUM_STR(k_trigger, v); }
-const char *mg_accion_str(mg_accion_t v) { return ENUM_STR(k_accion, v); }
+const char *mg_action_str(mg_action_t v) { return ENUM_STR(k_action, v); }
 const char *mg_ack_result_str(mg_ack_result_t v) { return ENUM_STR(k_ack, v); }
 
-mg_accion_t mg_accion_from_str(const char *s)
+mg_action_t mg_action_from_str(const char *s)
 {
     if (s) {
-        for (size_t i = 1; i < ARRAY_LEN(k_accion); i++) {
-            if (strcmp(s, k_accion[i]) == 0) {
-                return (mg_accion_t)i;
+        for (size_t i = 1; i < ARRAY_LEN(k_action); i++) {
+            if (strcmp(s, k_action[i]) == 0) {
+                return (mg_action_t)i;
             }
         }
     }
-    return MG_ACCION_DESCONOCIDA;
+    return MG_ACTION_UNKNOWN;
 }
 
 esp_err_t mg_topic(char *buf, size_t len, mg_node_kind_t kind, const char *node_id, const char *channel)
@@ -90,50 +90,50 @@ char *mg_msg_cam_status(const char *node_id, const mg_cam_status_t *st)
         cJSON_Delete(o);
         return NULL;
     }
-    cJSON_AddStringToObject(o, "estado_nodo", mg_estado_nodo_str(st->estado_nodo));
+    cJSON_AddStringToObject(o, "node_state", mg_node_state_str(st->node_state));
     add_str_or_null(o, "camera_type", st->camera_type);
     add_str_or_null(o, "firmware", st->firmware);
-    add_str_or_null(o, "ultima_captura", st->ultima_captura);
-    if (st->sd_libre_pct >= 0) {
-        cJSON_AddNumberToObject(o, "sd_libre_pct", st->sd_libre_pct);
+    add_str_or_null(o, "last_capture", st->last_capture);
+    if (st->sd_free_pct >= 0) {
+        cJSON_AddNumberToObject(o, "sd_free_pct", st->sd_free_pct);
     } else {
-        cJSON_AddNullToObject(o, "sd_libre_pct");
+        cJSON_AddNullToObject(o, "sd_free_pct");
     }
     if (st->rssi != 0) {
         cJSON_AddNumberToObject(o, "rssi", st->rssi);
     } else {
         cJSON_AddNullToObject(o, "rssi");
     }
-    add_str_or_null(o, "zona_id", st->zona_id);
+    add_str_or_null(o, "zone_id", st->zone_id);
     return mg_msg_to_string(o);
 }
 
-char *mg_msg_cam_event(const char *node_id, mg_tipo_evento_t tipo, mg_severidad_t sev,
-                       const char *captura_id, const char *detalle)
+char *mg_msg_cam_event(const char *node_id, mg_event_type_t type, mg_severity_t sev,
+                       const char *capture_id, const char *detail)
 {
     cJSON *o = mg_msg_new(node_id);
     if (!o) {
         return NULL;
     }
-    cJSON_AddStringToObject(o, "tipo_evento", mg_tipo_evento_str(tipo));
-    cJSON_AddStringToObject(o, "severidad", mg_severidad_str(sev));
-    add_str_or_null(o, "captura_id", captura_id);
-    if (detalle) {
-        cJSON_AddStringToObject(o, "detalle", detalle);
+    cJSON_AddStringToObject(o, "event_type", mg_event_type_str(type));
+    cJSON_AddStringToObject(o, "severity", mg_severity_str(sev));
+    add_str_or_null(o, "capture_id", capture_id);
+    if (detail) {
+        cJSON_AddStringToObject(o, "detail", detail);
     }
     return mg_msg_to_string(o);
 }
 
-char *mg_msg_cmd_ack(const char *node_id, const char *cmd_id, mg_ack_result_t res, const char *motivo)
+char *mg_msg_cmd_ack(const char *node_id, const char *cmd_id, mg_ack_result_t res, const char *reason)
 {
     cJSON *o = mg_msg_new(node_id);
     if (!o) {
         return NULL;
     }
     cJSON_AddStringToObject(o, "cmd_id", cmd_id ? cmd_id : "");
-    cJSON_AddStringToObject(o, "resultado", mg_ack_result_str(res));
-    if (motivo) {
-        cJSON_AddStringToObject(o, "motivo", motivo);
+    cJSON_AddStringToObject(o, "result", mg_ack_result_str(res));
+    if (reason) {
+        cJSON_AddStringToObject(o, "reason", reason);
     }
     return mg_msg_to_string(o);
 }
@@ -164,31 +164,31 @@ esp_err_t mg_cmd_parse(const char *json, size_t len, mg_cmd_t *out)
 
     esp_err_t err = ESP_OK;
     const cJSON *ver = cJSON_GetObjectItemCaseSensitive(root, "schema_version");
-    const char *accion = get_str(root, "accion");
+    const char *action = get_str(root, "action");
 
     if (!cJSON_IsNumber(ver)) {
         err = ESP_ERR_INVALID_ARG;
     } else if (ver->valueint != MG_SCHEMA_VERSION) {
         err = ESP_ERR_NOT_SUPPORTED;
-    } else if (!cmd_id || cmd_id[0] == '\0' || strlen(cmd_id) > MG_CMD_ID_MAX_LEN || !accion) {
+    } else if (!cmd_id || cmd_id[0] == '\0' || strlen(cmd_id) > MG_CMD_ID_MAX_LEN || !action) {
         err = ESP_ERR_INVALID_ARG;
     }
 
     if (err == ESP_OK) {
-        strlcpy(out->accion_raw, accion, sizeof(out->accion_raw));
-        out->accion = mg_accion_from_str(accion);
+        strlcpy(out->action_raw, action, sizeof(out->action_raw));
+        out->action = mg_action_from_str(action);
 
-        const char *emisor = get_str(root, "node_id");
-        if (emisor) {
-            strlcpy(out->emisor, emisor, sizeof(out->emisor));
+        const char *sender = get_str(root, "node_id");
+        if (sender) {
+            strlcpy(out->sender, sender, sizeof(out->sender));
         }
         const char *ts = get_str(root, "ts");
         if (!ts || mg_time_parse_iso(ts, &out->ts) != ESP_OK) {
             out->ts = 0;
         }
-        cJSON *params = cJSON_DetachItemFromObjectCaseSensitive(root, "parametros");
+        cJSON *params = cJSON_DetachItemFromObjectCaseSensitive(root, "params");
         if (cJSON_IsObject(params)) {
-            out->parametros = params;
+            out->params = params;
         } else {
             cJSON_Delete(params);
         }
@@ -200,7 +200,7 @@ esp_err_t mg_cmd_parse(const char *json, size_t len, mg_cmd_t *out)
 void mg_cmd_free(mg_cmd_t *cmd)
 {
     if (cmd) {
-        cJSON_Delete(cmd->parametros);
-        cmd->parametros = NULL;
+        cJSON_Delete(cmd->params);
+        cmd->params = NULL;
     }
 }

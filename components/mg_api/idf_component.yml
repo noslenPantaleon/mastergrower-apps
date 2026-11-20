@@ -1,0 +1,4 @@
+version: "0.1.0"
+description: "MasterGrow - cliente HTTP de la API (token Bearer, multipart, lectura de respuesta)"
+dependencies:
+  idf: ">=5.3"

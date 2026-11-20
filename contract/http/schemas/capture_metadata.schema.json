@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://mastergrow.local/contract/http/capture_metadata.schema.json",
+  "title": "POST /api/v1/captures — parte 'metadata' (Contrato §5.2)",
+  "type": "object",
+  "required": ["schema_version", "node_id", "camera_type", "trigger_type", "resolution", "priority"],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "node_id": { "type": "string", "pattern": "^cam-[0-9]{2,}$" },
+    "ts": { "type": "string", "format": "date-time", "description": "cuándo se generó el mensaje" },
+    "timestamp": {
+      "type": ["string", "null"], "format": "date-time",
+      "description": "hora UTC de la captura; null si el nodo no tenía hora válida (la API usa la de recepción)"
+    },
+    "camera_type": { "enum": ["xiao-ov3660", "xiao-ov5640", "rpi-noir", "thermal-mlx90640", "thermal-lepton"] },
+    "trigger_type": { "enum": ["timer", "sensor_event", "remote_command", "post_actuation", "schedule"] },
+    "resolution": { "enum": ["QVGA", "VGA", "SVGA", "XGA", "HD", "SXGA", "UXGA", "QXGA"] },
+    "width": { "type": "integer", "minimum": 1 },
+    "height": { "type": "integer", "minimum": 1 },
+    "priority": { "enum": ["normal", "high"] },
+    "seq": { "type": "integer", "minimum": 0, "description": "número local de captura desde el arranque" },
+    "sensor_snapshot": {
+      "type": ["object", "null"],
+      "properties": {
+        "temperature": { "type": ["number", "null"] },
+        "humidity": { "type": ["number", "null"] },
+        "lux": { "type": ["number", "null"] }
+      }
+    },
+    "local_analysis": { "type": ["object", "null"] }
+  },
+  "additionalProperties": true,
+  "examples": [{
+    "schema_version": 1, "node_id": "cam-01", "ts": "2026-11-17T04:00:28Z",
+    "timestamp": "2026-11-17T04:00:28Z", "camera_type": "xiao-ov3660", "trigger_type": "remote_command",
+    "resolution": "UXGA", "width": 1600, "height": 1200, "priority": "high", "seq": 7,
+    "sensor_snapshot": { "temperature": null, "humidity": null, "lux": null }, "local_analysis": null
+  }]
+}

@@ -8,7 +8,10 @@ comunican **solo** por broker MQTT y API HTTP (nunca entre sí directamente):
 - **Módulo de control y sensores** — fuera de alcance por ahora.
 - **Backend** — API propia FastAPI + Mosquitto + PostgreSQL (docker compose). Pendiente.
 
-Idioma de trabajo: español (código con identificadores en inglés; comentarios y logs en español).
+Idioma de trabajo: español para la conversación, comentarios, logs, textos de UI y documentos (plan, SRS).
+**Todo lo que es código va en inglés**: identificadores, nombres de archivos y carpetas, tablas y columnas,
+y también el contrato que viaja por la red (campos JSON, valores de enums, rutas HTTP, códigos de error).
+El Contrato .docx de referencia usa nombres en español: equivalencia en `contract/NAMING.md`.
 
 ## Documentos de referencia
 
@@ -24,19 +27,20 @@ Idioma de trabajo: español (código con identificadores en inglés; comentarios
 - El XIAO aparece como `/dev/cu.usbmodem101`.
 - Backend: `cd backend && docker compose up -d --build` (Docker vía OrbStack: `~/.orbstack/bin/docker`).
   Claves en `backend/.env` (gitignored, generadas al azar). Tests: `uv run pytest`, lint: `uv run ruff check .`
-- Ver tráfico MQTT: `backend/scripts/mqtt_ver.sh`. Enviar comando: `backend/scripts/cam_cmd.sh capture_now`.
+- Ver tráfico MQTT: `backend/scripts/mqtt_watch.sh`. Enviar comando: `backend/scripts/cam_cmd.sh capture_now`.
+- Capturas subidas: `http://localhost:8000/gallery?token=<token dev de API_USER_TOKENS en backend/.env>`.
 - La red del usuario NO responde NTP de pool.ntp.org por IPv4; time.google.com sí (es el primario).
 - El sandbox de Claude bloquea UDP desde Python: no sirve para probar NTP/DNS; usar `sntp` del sistema.
 - Compilar y grabar la cámara:
-  `cd nodo_camara && idf.py -p /dev/cu.usbmodem101 build flash monitor`
+  `cd camera_node && idf.py -p /dev/cu.usbmodem101 build flash monitor`
 - **La IP de la Mac cambia por DHCP** (era .182, el 2026-11-13 pasó a .169): si la cámara queda
-  `fuera_de_linea`, comparar `ipconfig getifaddr en0` con CONFIG_MG_MQTT_BROKER_URI. Pendiente decidir:
+  `offline`, comparar `ipconfig getifaddr en0` con CONFIG_MG_MQTT_BROKER_URI. Pendiente decidir:
   reserva DHCP en el router o mDNS (`<mac>.local` con espressif/mdns).
 - El scratchpad de Claude se borra entre sesiones: `readlog.py` (lector serie con reset) hay que recrearlo.
-- Credenciales WiFi y MQTT (broker = IP de la Mac) en `nodo_camara/sdkconfig.defaults.local`
+- Credenciales WiFi y MQTT (broker = IP de la Mac) en `camera_node/sdkconfig.defaults.local`
   (gitignored). Tras editarlo: `rm sdkconfig`. Si el usuario tiene un `idf.py monitor` abierto, el puerto
   queda ocupado: pedirle que lo cierre con Ctrl+] antes de grabar.
-- La extensión ESP-IDF de VS Code solo funciona abriendo la carpeta del nodo (`nodo_camara`), no la raíz.
+- La extensión ESP-IDF de VS Code solo funciona abriendo la carpeta del nodo (`camera_node`), no la raíz.
 - En IDF 6.x, **mqtt, cjson y wifi_provisioning ya no vienen en IDF**: usar `espressif/mqtt`,
   `espressif/cjson`, `espressif/network_provisioning` del component registry.
 
@@ -74,9 +78,21 @@ Idioma de trabajo: español (código con identificadores en inglés; comentarios
 - [x] **C4** — `node_hal/hal_storage` (SDSPI + FATFS en /sd, nunca formatea, pull-ups internos + 3 reintentos)
       y servicio `components/services/storage_queue` (agregado con EXTRA_COMPONENT_DIRS): <id>.jpg + <id>.json en
       /sd/mg/pend, escritura atómica (temporales + rename), índice en PSRAM reconstruido al arrancar,
-      limpieza (rutinarias viejas primero; máx 2000 pendientes; mín 10 % libre), evento sd_llena al 80 %
+      limpieza (rutinarias viejas primero; máx 2000 pendientes; mín 10 % libre), evento sd_full al 80 %
       con histéresis. capture_task guarda ANTES de q_frame; metadatos del Contrato §5.2 en pipeline_meta_json.
       Debug: GET /storage y /storage/img?id=. Probado con microSD de 16 GB y sin tarjeta. Las capturas
       tomadas antes de sincronizar NTP quedan con id `19700101T000000Z_...` (tenerlo en cuenta en C5).
-- [ ] **C5** — upload_task + B1 (POST /capturas) · C6 config remota ·
-      C7 análisis HSV · C8 vista en vivo · C9 extras. Luego nodo de pantalla D0–D6.
+- [x] **B1** — `POST/GET /captures`, `/{id}`, `/image`, `/thumb` (320×240 con Pillow, cacheada) según
+      `contract/http/captures.md`; Alembic (migra al arrancar el contenedor); `ImageStore` local en el
+      volumen `images`; tokens por env `API_NODE_TOKENS` / `API_USER_TOKENS` (B4 los pasa a la base);
+      `Idempotency-Key` = id de la SD (reintento → 200 sin duplicar); `timestamp: null` → hora de
+      recepción + `timestamp_approx`. Galería: `http://<mac>:8000/gallery?token=<token de usuario>`.
+      12 tests (SQLite en memoria) incluido el chequeo de enums contra `contract/`.
+- [x] **C5** — componente compartido `mg_api` (POST multipart en streaming, Bearer, Kconfig
+      `MG_API_BASE_URL`/`MG_API_TOKEN`) + `upload_task` (núcleo 0, prio 4): sube de la SD (alta y más vieja
+      primero; `storage_queue` marca `in_progress` hasta que termina el pipeline), borra solo tras 201/200,
+      descarta con 400/413/415/422, backoff 2→300 s con ±20 % (401/403 → 300 s). Sin SD sube desde RAM
+      (3 intentos). Probado: API detenida → 5 pendientes → al volver suben las 5. `/storage` muestra stats.
+      La URL de la API también usa la IP de la Mac (mismo problema de DHCP que el broker).
+- [ ] **C6** config remota (requiere B3) · C7 análisis HSV · C8 vista en vivo · C9 extras.
+      Backend: B2 ingestor MQTT · B3 config · B4 nodos/zonas · B5 stream · B6 contrato exportado. Luego nodo de pantalla D0–D6.

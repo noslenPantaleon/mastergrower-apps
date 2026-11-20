@@ -3,23 +3,23 @@
   "$id": "https://mastergrow.local/contract/mqtt/cam_status.schema.json",
   "title": "growlab/cam/{id}/status",
   "type": "object",
-  "required": ["schema_version", "node_id", "ts", "estado_nodo"],
+  "required": ["schema_version", "node_id", "ts", "node_state"],
   "properties": {
     "schema_version": { "const": 1 },
     "node_id": { "type": "string", "pattern": "^cam-[0-9]{2,}$" },
     "ts": { "type": "string", "format": "date-time" },
-    "estado_nodo": { "enum": ["arrancando", "operativo", "autonomo", "error", "fuera_de_linea"] },
+    "node_state": { "enum": ["booting", "operational", "autonomous", "error", "offline"] },
     "camera_type": { "enum": ["xiao-ov3660", "xiao-ov5640", "rpi-noir", "thermal-mlx90640", "thermal-lepton"] },
     "firmware": { "type": "string" },
-    "ultima_captura": { "type": ["string", "null"], "format": "date-time" },
-    "sd_libre_pct": { "type": ["integer", "null"], "minimum": 0, "maximum": 100 },
+    "last_capture": { "type": ["string", "null"], "format": "date-time" },
+    "sd_free_pct": { "type": ["integer", "null"], "minimum": 0, "maximum": 100 },
     "rssi": { "type": ["integer", "null"] },
-    "zona_id": { "type": ["string", "null"] }
+    "zone_id": { "type": ["string", "null"] }
   },
   "additionalProperties": true,
   "examples": [{
     "schema_version": 1, "node_id": "cam-01", "ts": "2026-11-09T18:30:00Z",
-    "estado_nodo": "operativo", "camera_type": "xiao-ov3660", "firmware": "0.3.1",
-    "ultima_captura": "2026-11-09T18:00:12Z", "sd_libre_pct": 91, "rssi": -58, "zona_id": "zona-a"
+    "node_state": "operational", "camera_type": "xiao-ov3660", "firmware": "0.3.1",
+    "last_capture": "2026-11-09T18:00:12Z", "sd_free_pct": 91, "rssi": -58, "zone_id": "zona-a"
   }]
 }

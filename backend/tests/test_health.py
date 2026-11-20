@@ -19,7 +19,7 @@ async def test_health_ok():
     assert body["db"] == "ok"
 
 
-async def test_health_degradado_sin_db():
+async def test_health_degraded_without_db():
     body = await _get_health(False)
-    assert body["status"] == "degradado"
+    assert body["status"] == "degraded"
     assert body["db"] == "error"

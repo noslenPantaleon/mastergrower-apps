@@ -4,6 +4,10 @@ Basado en: SRS Nodo de Cámara, SRS Nodo de Pantalla, Arquitectura Nodo de Cáma
 Arquitectura Nodo de Pantalla (B) y Contrato de interfaces (B). El **Contrato** es la
 referencia única de temas, mensajes y endpoints.
 
+> **Nombres (2026-11-18):** el código y el contrato ejecutable usan nombres en **inglés**
+> (campos, enums, rutas, tablas, archivos). Este plan conserva los nombres en español del
+> Contrato .docx; la equivalencia está en `contract/NAMING.md`.
+
 Entorno: ESP-IDF **v6.1** (`~/.espressif/v6.1/esp-idf`), targets `esp32s3`.
 
 ---
@@ -31,7 +35,7 @@ proyecto mastergrow/
 │   ├── mg_time/                SNTP + helpers ISO-8601 UTC
 │   ├── mg_settings/            lectura/escritura NVS tipada (credenciales, token, config cacheada)
 │   └── mg_contract/            constantes de temas, enums y builders JSON (cJSON) del contrato
-├── nodo_camara/                proyecto ESP-IDF — XIAO ESP32-S3 Sense
+├── camera_node/                proyecto ESP-IDF — XIAO ESP32-S3 Sense
 │   ├── CMakeLists.txt
 │   ├── sdkconfig.defaults
 │   ├── partitions.csv
@@ -45,7 +49,7 @@ proyecto mastergrow/
 │       ├── hal/                hal_camera(+ drivers ov3660/ov5640), hal_storage_sd,
 │       │                       hal_light_bh1750, hal_status_led, hal_display_oled
 │       └── services/           config_store, storage_queue, net_client, local_vision
-├── nodo_pantalla/              proyecto ESP-IDF — Waveshare ESP32-S3-Touch-LCD-4.3B-BOX
+├── display_node/              proyecto ESP-IDF — Waveshare ESP32-S3-Touch-LCD-4.3B-BOX
 │   ├── main/                   app_main.c, tasks/, ui/ (ui_api.h, ui_bindings, ui_events, c/, lvglpro/)
 │   └── components/             hal/ (lcd, touch, backlight), services/ (state_store,
 │                               mqtt_subscriber, api_client, thumb_cache, command_publisher, settings_store)
@@ -57,7 +61,7 @@ proyecto mastergrow/
     └── docker-compose.yml
 ```
 
-**Cómo se comparten componentes** — en `nodo_camara/main/idf_component.yml`:
+**Cómo se comparten componentes** — en `camera_node/main/idf_component.yml`:
 
 ```yaml
 dependencies:
@@ -132,7 +136,7 @@ firmware. Cada fase termina con un **criterio de "hecho"** verificable.
 ### Fase 0 — Base del repositorio (½ día)
 
 - `git init`, `.gitignore` unificado, README con cómo compilar cada nodo.
-- `nodo_camara`: `idf.py set-target esp32s3`; corregir `.vscode/settings.json` (hoy dice
+- `camera_node`: `idf.py set-target esp32s3`; corregir `.vscode/settings.json` (hoy dice
   `IDF_TARGET: esp32` y OpenOCD `esp32-wrover-kit`, debe ser `esp32s3` / `esp32s3-builtin.cfg`).
 - `sdkconfig.defaults` del XIAO: flash 8 MB, PSRAM **octal** 80 MHz, `CONFIG_SPIRAM_USE_MALLOC`,
   tabla de particiones propia, consola por USB-Serial-JTAG.
@@ -238,7 +242,7 @@ punta a punta antes de tener la pantalla.
 
 ### Nodo de Pantalla (después de C5)
 
-**D0 — Plataforma:** proyecto `nodo_pantalla` para esp32s3 (16 MB flash, 8 MB PSRAM octal),
+**D0 — Plataforma:** proyecto `display_node` para esp32s3 (16 MB flash, 8 MB PSRAM octal),
 panel RGB 800×480 con `esp_lcd` RGB y bounce buffers, táctil GT911, expansor de E/S CH422G
 (backlight/reset), LVGL 9 con `espressif/esp_lvgl_port`. Verificar si Waveshare publica un BSP
 para la 4.3B y usarlo como base del HAL.

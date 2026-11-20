@@ -39,36 +39,36 @@ esp_err_t mg_topic(char *buf, size_t len, mg_node_kind_t kind, const char *node_
 /* ---------- Enumeraciones (Contrato §3.3) ---------- */
 
 typedef enum {
-    MG_ESTADO_ARRANCANDO, MG_ESTADO_OPERATIVO, MG_ESTADO_AUTONOMO, MG_ESTADO_ERROR, MG_ESTADO_FUERA_DE_LINEA,
-} mg_estado_nodo_t;
+    MG_STATE_BOOTING, MG_STATE_OPERATIONAL, MG_STATE_AUTONOMOUS, MG_STATE_ERROR, MG_STATE_OFFLINE,
+} mg_node_state_t;
 
-typedef enum { MG_SEV_BAJA, MG_SEV_MEDIA, MG_SEV_ALTA } mg_severidad_t;
-
-typedef enum {
-    MG_EVT_LUZ_APAGADA_ANTICIPADA, MG_EVT_ANOMALIA_PLANTA, MG_EVT_SD_LLENA, MG_EVT_ERROR_CAMARA,
-    MG_EVT_NODO_SIN_CONEXION,
-} mg_tipo_evento_t;
+typedef enum { MG_SEV_LOW, MG_SEV_MEDIUM, MG_SEV_HIGH } mg_severity_t;
 
 typedef enum {
-    MG_TRIGGER_TIMER, MG_TRIGGER_EVENTO_SENSOR, MG_TRIGGER_COMANDO_REMOTO, MG_TRIGGER_POST_ACTUACION,
-    MG_TRIGGER_CALENDARIO,
+    MG_EVT_EARLY_LIGHTS_OFF, MG_EVT_PLANT_ANOMALY, MG_EVT_SD_FULL, MG_EVT_CAMERA_ERROR,
+    MG_EVT_NODE_DISCONNECTED,
+} mg_event_type_t;
+
+typedef enum {
+    MG_TRIGGER_TIMER, MG_TRIGGER_SENSOR_EVENT, MG_TRIGGER_REMOTE_COMMAND, MG_TRIGGER_POST_ACTUATION,
+    MG_TRIGGER_SCHEDULE,
 } mg_trigger_type_t;
 
 typedef enum {
-    MG_ACCION_DESCONOCIDA = 0,
-    MG_ACCION_CAPTURE_NOW, MG_ACCION_REFRESH_CONFIG, MG_ACCION_REBOOT, MG_ACCION_START_STREAM,
-    MG_ACCION_STOP_STREAM, MG_ACCION_SET_ACTUADOR, MG_ACCION_SET_MODO,
-} mg_accion_t;
+    MG_ACTION_UNKNOWN = 0,
+    MG_ACTION_CAPTURE_NOW, MG_ACTION_REFRESH_CONFIG, MG_ACTION_REBOOT, MG_ACTION_START_STREAM,
+    MG_ACTION_STOP_STREAM, MG_ACTION_SET_ACTUATOR, MG_ACTION_SET_MODE,
+} mg_action_t;
 
 typedef enum { MG_ACK_ACCEPTED, MG_ACK_REJECTED, MG_ACK_DONE } mg_ack_result_t;
 
-const char *mg_estado_nodo_str(mg_estado_nodo_t v);
-const char *mg_severidad_str(mg_severidad_t v);
-const char *mg_tipo_evento_str(mg_tipo_evento_t v);
+const char *mg_node_state_str(mg_node_state_t v);
+const char *mg_severity_str(mg_severity_t v);
+const char *mg_event_type_str(mg_event_type_t v);
 const char *mg_trigger_type_str(mg_trigger_type_t v);
-const char *mg_accion_str(mg_accion_t v);
+const char *mg_action_str(mg_action_t v);
 const char *mg_ack_result_str(mg_ack_result_t v);
-mg_accion_t mg_accion_from_str(const char *s);
+mg_action_t mg_action_from_str(const char *s);
 
 /* ---------- Mensajes ---------- */
 
@@ -83,36 +83,36 @@ char *mg_msg_to_string(cJSON *msg);
 
 /** Campos de growlab/cam/{id}/status. Los opcionales en NULL / <0 se publican como null. */
 typedef struct {
-    mg_estado_nodo_t estado_nodo;
+    mg_node_state_t node_state;
     const char *camera_type;
     const char *firmware;
-    const char *ultima_captura;  /**< ISO-8601 o NULL */
-    int sd_libre_pct;            /**< -1 = desconocido (null) */
+    const char *last_capture;  /**< ISO-8601 o NULL */
+    int sd_free_pct;            /**< -1 = desconocido (null) */
     int rssi;                    /**< 0 = desconocido (null) */
-    const char *zona_id;         /**< NULL = sin asignar */
+    const char *zone_id;         /**< NULL = sin asignar */
 } mg_cam_status_t;
 
 char *mg_msg_cam_status(const char *node_id, const mg_cam_status_t *st);
 
 /** growlab/cam/{id}/event */
-char *mg_msg_cam_event(const char *node_id, mg_tipo_evento_t tipo, mg_severidad_t sev,
-                       const char *captura_id, const char *detalle);
+char *mg_msg_cam_event(const char *node_id, mg_event_type_t type, mg_severity_t sev,
+                       const char *capture_id, const char *detail);
 
 /** growlab/{tipo}/{id}/cmd/ack */
-char *mg_msg_cmd_ack(const char *node_id, const char *cmd_id, mg_ack_result_t res, const char *motivo);
+char *mg_msg_cmd_ack(const char *node_id, const char *cmd_id, mg_ack_result_t res, const char *reason);
 
 /** Comando recibido (growlab/{tipo}/{id}/cmd). */
 typedef struct {
-    mg_accion_t accion;
-    char accion_raw[24];               /**< texto original (para rechazar desconocidas) */
+    mg_action_t action;
+    char action_raw[24];               /**< texto original (para rechazar desconocidas) */
     char cmd_id[MG_CMD_ID_MAX_LEN + 1];
-    char emisor[32];                   /**< node_id del emisor */
+    char sender[32];                   /**< node_id del emisor */
     time_t ts;                         /**< 0 si no vino o no se pudo interpretar */
-    cJSON *parametros;                 /**< propiedad del mg_cmd_t; NULL si no hay */
+    cJSON *params;                 /**< propiedad del mg_cmd_t; NULL si no hay */
 } mg_cmd_t;
 
 /**
- * @brief Interpreta y valida un comando. Exige schema_version 1, cmd_id y accion.
+ * @brief Interpreta y valida un comando. Exige schema_version 1, cmd_id y action.
  * @return ESP_OK; ESP_ERR_INVALID_ARG si el JSON o los campos obligatorios son inválidos;
  *         ESP_ERR_NOT_SUPPORTED si schema_version no es compatible.
  *         Si devuelve error, out->cmd_id igual se completa si se pudo leer (para el ack).

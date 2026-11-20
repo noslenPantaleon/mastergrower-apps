@@ -3,19 +3,19 @@
   "$id": "https://mastergrow.local/contract/mqtt/cam_event.schema.json",
   "title": "growlab/cam/{id}/event",
   "type": "object",
-  "required": ["schema_version", "node_id", "ts", "tipo_evento", "severidad"],
+  "required": ["schema_version", "node_id", "ts", "event_type", "severity"],
   "properties": {
     "schema_version": { "const": 1 },
     "node_id": { "type": "string" },
     "ts": { "type": "string", "format": "date-time" },
-    "tipo_evento": { "enum": ["luz_apagada_anticipada", "anomalia_planta", "sd_llena", "error_camara", "nodo_sin_conexion"] },
-    "severidad": { "enum": ["baja", "media", "alta"] },
-    "captura_id": { "type": ["string", "null"] },
-    "detalle": { "type": ["object", "string", "null"] }
+    "event_type": { "enum": ["early_lights_off", "plant_anomaly", "sd_full", "camera_error", "node_disconnected"] },
+    "severity": { "enum": ["low", "medium", "high"] },
+    "capture_id": { "type": ["string", "null"] },
+    "detail": { "type": ["object", "string", "null"] }
   },
   "additionalProperties": true,
   "examples": [{
     "schema_version": 1, "node_id": "cam-01", "ts": "2026-11-09T18:42:10Z",
-    "tipo_evento": "luz_apagada_anticipada", "severidad": "alta", "captura_id": "c-000123"
+    "event_type": "early_lights_off", "severity": "high", "capture_id": "c-000123"
   }]
 }

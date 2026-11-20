@@ -1,0 +1,14 @@
+# Copiar como sdkconfig.defaults.local (está en .gitignore) y completar.
+# Después: borrar sdkconfig y recompilar, o cargar los valores desde menuconfig.
+CONFIG_MG_WIFI_SSID="mi-red"
+CONFIG_MG_WIFI_PASSWORD="mi-clave"
+CONFIG_MG_NODE_ID="cam-01"
+
+# MQTT: IP de la máquina donde corre `docker compose` (backend/) y la clave de cam-01
+# definida en backend/.env (MQTT_NODE_USERS). El usuario MQTT es el node_id.
+CONFIG_MG_MQTT_BROKER_URI="mqtt://192.168.1.10:1883"
+CONFIG_MG_MQTT_PASSWORD="clave-de-cam-01"
+
+# API HTTP (C5): token = el de este node_id en API_NODE_TOKENS de backend/.env
+CONFIG_MG_API_BASE_URL="http://192.168.1.10:8000/api/v1"
+CONFIG_MG_API_TOKEN="cambiar"
