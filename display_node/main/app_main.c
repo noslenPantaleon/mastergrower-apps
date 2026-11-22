@@ -1,8 +1,9 @@
 /**
  * @file app_main.c
- * @brief Nodo de pantalla MasterGrow (D0): placa, panel RGB, táctil y LVGL 9.
+ * @brief Nodo de pantalla MasterGrow: placa, panel RGB, táctil, LVGL 9 (D0) y datos por MQTT (D1).
  *
- * LVGL corre en su propia tarea (esp_lvgl_port) en el núcleo 1; la red irá en el núcleo 0 (D1).
+ * LVGL corre en su propia tarea (esp_lvgl_port) en el núcleo 1 y es la única que toca la
+ * interfaz; la red y el state_store van en el núcleo 0 y avisan los cambios por ui_bridge.
  * Sin tearing: 2 framebuffers en PSRAM, LVGL dibuja directo en el que no se muestra y el cambio
  * se hace en el vsync (avoid_tearing + direct_mode).
  */
@@ -17,14 +18,17 @@
 #include "hal_board.h"
 #include "hal_lcd.h"
 #include "hal_touch.h"
-#include "sdkconfig.h"
-#include "ui_hello.h"
+#include "net_task.h"
+#include "nvs_flash.h"
+#include "esp_event.h"
+#include "esp_netif.h"
+#include "state_store.h"
+#include "system_config.h"
+#include "ui_bridge.h"
+#include "ui_status.h"
 
 static const char *TAG = "app";
 
-#define LVGL_TASK_CORE   1
-#define LVGL_TASK_PRIO   4
-#define LVGL_TASK_STACK  (8 * 1024)
 
 static void log_memory(const char *when)
 {
@@ -36,9 +40,9 @@ static void log_memory(const char *when)
 static lv_display_t *start_display(esp_lcd_panel_handle_t panel, esp_lcd_touch_handle_t touch)
 {
     lvgl_port_cfg_t port_cfg = ESP_LVGL_PORT_INIT_CONFIG();
-    port_cfg.task_priority = LVGL_TASK_PRIO;
-    port_cfg.task_stack = LVGL_TASK_STACK;
-    port_cfg.task_affinity = LVGL_TASK_CORE;
+    port_cfg.task_priority = SYS_LVGL_PRIO;
+    port_cfg.task_stack = SYS_LVGL_STACK;
+    port_cfg.task_affinity = SYS_CORE_UI;
     if (lvgl_port_init(&port_cfg) != ESP_OK) {
         return NULL;
     }
@@ -71,16 +75,30 @@ static lv_display_t *start_display(esp_lcd_panel_handle_t panel, esp_lcd_touch_h
     return disp;
 }
 
+static esp_err_t init_nvs(void)
+{
+    esp_err_t err = nvs_flash_init();
+    if (err == ESP_ERR_NVS_NO_FREE_PAGES || err == ESP_ERR_NVS_NEW_VERSION_FOUND) {
+        ESP_ERROR_CHECK(nvs_flash_erase());
+        err = nvs_flash_init();
+    }
+    return err;
+}
+
 void app_main(void)
 {
     const esp_app_desc_t *app = esp_app_get_description();
-    ESP_LOGI(TAG, "MasterGrow nodo de pantalla · node_id=%s · fw %s · IDF %s", CONFIG_MG_NODE_ID,
-             CONFIG_MG_FIRMWARE_VERSION, app->idf_ver);
+    ESP_LOGI(TAG, "MasterGrow nodo de pantalla · node_id=%s · fw %s · IDF %s", SYS_NODE_ID,
+             SYS_FIRMWARE_VERSION, app->idf_ver);
     if (!esp_psram_is_initialized()) {
         ESP_LOGE(TAG, "PSRAM no disponible: los framebuffers necesitan PSRAM");
         return;
     }
     log_memory("arranque");
+    ESP_ERROR_CHECK(init_nvs());
+    ESP_ERROR_CHECK(esp_netif_init());
+    ESP_ERROR_CHECK(esp_event_loop_create_default());
+    state_store_init();
 
     ESP_ERROR_CHECK(hal_board_init());
     esp_lcd_panel_handle_t panel = NULL;
@@ -98,10 +116,16 @@ void app_main(void)
         return;
     }
     if (lvgl_port_lock(0)) {
-        ui_hello_create();
+        ui_status_create();
+        ESP_ERROR_CHECK(ui_bridge_start());
         lvgl_port_unlock();
     }
     vTaskDelay(pdMS_TO_TICKS(100));  // primera imagen ya dibujada: recién ahí la luz
     ESP_ERROR_CHECK(hal_lcd_backlight(true));
     log_memory("interfaz lista");
+
+    esp_err_t net = net_task_start();
+    if (net != ESP_OK) {
+        ESP_LOGE(TAG, "Red no iniciada (%s): la pantalla sigue sin datos", esp_err_to_name(net));
+    }
 }

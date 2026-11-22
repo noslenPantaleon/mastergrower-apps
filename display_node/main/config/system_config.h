@@ -1,0 +1,19 @@
+/**
+ * @file system_config.h
+ * @brief Constantes del nodo de pantalla: identidad, tareas y núcleos (Arquitectura de pantalla §3.3).
+ */
+#pragma once
+
+#include "sdkconfig.h"
+
+#define SYS_NODE_ID          CONFIG_MG_NODE_ID
+#define SYS_FIRMWARE_VERSION CONFIG_MG_FIRMWARE_VERSION
+
+/* Red y modelo en el núcleo 0; LVGL (la única tarea que toca la interfaz) en el 1. */
+#define SYS_CORE_NET   0
+#define SYS_CORE_UI    1
+
+#define SYS_LVGL_STACK     (8 * 1024)
+#define SYS_LVGL_PRIO      4
+#define SYS_NET_TASK_STACK 6144
+#define SYS_NET_TASK_PRIO  5

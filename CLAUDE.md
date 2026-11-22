@@ -176,4 +176,13 @@ El Contrato .docx de referencia usa nombres en español: equivalencia en `contra
       `LV_ATTRIBUTE_FAST_MEM_USE_IRAM` (choca con GCC 15). Arranque 0,84 s; libre 266 KB
       internos / 6,1 MB PSRAM. Medido: 38–45 fps (tope = refresco del panel a 16 MHz), sin tearing
       (barra animada entera); CPU 86–94 % con animación continua (incluye la espera del vsync). Datos de la placa sacados del ejemplo oficial 09_lvgl_v9_demo.
-- [ ] D1–D6 nodo de pantalla.
+- [x] **D1** — red (núcleo 0): `mg_wifi`/`mg_time`/`mg_mqtt` compartidos, usuario MQTT `disp-01`,
+      status propio retenido + LWT en `growlab/disp/disp-01/status` (la API lo registra como nodo
+      `disp`). Callback MQTT → cola → `net_task` → `model/state_store` (nodos ordenados + anillo de
+      32 eventos, snapshots, observadores). "Dato antiguo" por el `ts` del status si hay hora (sirve
+      con retenidos viejos), `CONFIG_MG_STALE_AFTER_S` = 660. `ui/ui_bridge`: observador → cola →
+      `lv_timer` (dentro de la tarea de LVGL) cada 100 ms + tick de 1 s. Pantalla `ui_status`
+      (textos sin tildes hasta tener fuentes Latin-1). Credenciales en
+      `display_node/sdkconfig.defaults.local` (WiFi/broker/API de la cámara, MQTT de disp-01, token
+      de usuario `pantalla`). Probado: LWT offline, cámara que se conecta en vivo, evento en la lista.
+- [ ] D2–D6 nodo de pantalla.

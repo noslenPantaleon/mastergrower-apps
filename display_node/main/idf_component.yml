@@ -2,3 +2,12 @@ dependencies:
   idf: ">=6.0"
   lvgl/lvgl: "~9.3.0"
   espressif/esp_lvgl_port: "^2.6.0"
+  # Componentes compartidos del monorepo (raíz/components)
+  mg_wifi:
+    path: ../../components/mg_wifi
+  mg_mqtt:
+    path: ../../components/mg_mqtt
+  mg_time:
+    path: ../../components/mg_time
+  mg_contract:
+    path: ../../components/mg_contract

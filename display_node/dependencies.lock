@@ -1,4 +1,14 @@
 dependencies:
+  espressif/cjson:
+    component_hash: e788323270d90738662d66fffa910bfe1fba019bba087f01557e70c40485b469
+    dependencies:
+    - name: idf
+      require: private
+      version: '>=5.0'
+    source:
+      registry_url: https://components.espressif.com/
+      type: service
+    version: 1.7.19~2
   espressif/esp_lcd_touch:
     component_hash: 3f85a7d95af876f1a6ecca8eb90a81614890d0f03a038390804e5a77e2caf862
     dependencies:
@@ -37,6 +47,16 @@ dependencies:
       registry_url: https://components.espressif.com/
       type: service
     version: 2.9.0
+  espressif/mqtt:
+    component_hash: fb18bc3b65aa8c94693a9811ffc322cca8a65d92d5ec84983d3e385080e3969c
+    dependencies:
+    - name: idf
+      require: private
+      version: '>=5.3'
+    source:
+      registry_url: https://components.espressif.com/
+      type: service
+    version: 1.1.0
   idf:
     source:
       type: idf
@@ -48,12 +68,54 @@ dependencies:
       registry_url: https://components.espressif.com/
       type: service
     version: 9.3.0
+  mg_contract:
+    dependencies:
+    - name: idf
+      version: '>=5.3'
+    - name: espressif/cjson
+      version: ^1.7.19
+    - name: mg_time
+      path: ../mg_time
+    source:
+      path: ../components/mg_contract
+      type: local
+    version: 0.1.0
+  mg_mqtt:
+    dependencies:
+    - name: idf
+      version: '>=5.3'
+    - name: espressif/mqtt
+      version: ^1.1.0
+    source:
+      path: ../components/mg_mqtt
+      type: local
+    version: 0.1.0
+  mg_time:
+    dependencies:
+    - name: idf
+      version: '>=5.3'
+    source:
+      path: ../components/mg_time
+      type: local
+    version: 0.1.0
+  mg_wifi:
+    dependencies:
+    - name: idf
+      version: '>=5.3'
+    source:
+      path: ../components/mg_wifi
+      type: local
+    version: 0.1.0
 direct_dependencies:
 - espressif/esp_lcd_touch
 - espressif/esp_lcd_touch_gt911
 - espressif/esp_lvgl_port
 - idf
 - lvgl/lvgl
-manifest_hash: f1a3cbba3e3a9021e33771e046653d910609e08ef8d94f8b058853ab7da7d9c6
+- mg_contract
+- mg_mqtt
+- mg_time
+- mg_wifi
+manifest_hash: 55eea788655692b78a50bd8bc67ebab4dcb7c155c7374ae8278de07a75e56cba
 target: esp32s3
 version: 3.0.0

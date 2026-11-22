@@ -10,4 +10,17 @@ menu "MasterGrow - Nodo de pantalla"
         string "Versión de firmware (se publica en status)"
         default "0.1.0"
 
+    config MG_STALE_AFTER_S
+        int "Dato antiguo: segundos sin noticias de un nodo"
+        default 660
+        range 60 86400
+        help
+            Los nodos republican su status cada 5 min (CONFIG_MG_STATUS_PERIOD_S de la cámara):
+            con 11 min sin datos se marca "dato antiguo" aunque no haya llegado el LWT.
+
+    config MG_UTC_OFFSET_MIN
+        int "Huso horario para mostrar horas (minutos respecto de UTC)"
+        default -180
+        range -720 840
+
 endmenu
