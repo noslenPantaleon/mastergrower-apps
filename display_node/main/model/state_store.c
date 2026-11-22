@@ -36,6 +36,11 @@ static void notify(ss_change_t c, const char *node_id)
     }
 }
 
+void state_store_notify(ss_change_t change, const char *node_id)
+{
+    notify(change, node_id);
+}
+
 void state_store_init(void)
 {
     if (!s_ss.lock) {

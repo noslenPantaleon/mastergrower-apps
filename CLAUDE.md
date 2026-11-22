@@ -185,4 +185,14 @@ El Contrato .docx de referencia usa nombres en español: equivalencia en `contra
       (textos sin tildes hasta tener fuentes Latin-1). Credenciales en
       `display_node/sdkconfig.defaults.local` (WiFi/broker/API de la cámara, MQTT de disp-01, token
       de usuario `pantalla`). Probado: LWT offline, cámara que se conecta en vivo, evento en la lista.
-- [ ] D2–D6 nodo de pantalla.
+- [x] **D2** — interfaz variante C (`ui/ui_api.h` = única interfaz; `ui/c/`): `theme` (paleta de la
+      maqueta Fig. 3, grilla 8 px), fuentes **TinyTTF** con `fonts/Montserrat-Medium.ttf` embebida
+      (tildes; `npx lv_font_conv` está bloqueado por el sandbox) y respaldo a las Montserrat de LVGL
+      para `LV_SYMBOL_*`. `ui_shell`: barra superior (WiFi, nodos en línea, alarmas, hora) y
+      navegación inferior (7 pantallas + voz deshabilitada); Inicio (KPI "--" hasta el módulo de
+      control, gráfico vacío, última captura), Cámaras (tarjeta por nodo + últimos eventos),
+      Eventos (lista), resto "en construcción". `services/command_publisher`: capture_now con
+      cmd_id `disp-01-<n>-<azar>`, acks por `growlab/cam/+/cmd/ack`, timeout 5 s accepted / 20 s
+      done; requiere hora válida. Probado en la placa: captura c-000211 `remote_command` UXGA.
+      RAM interna libre 138 KB (cachés de glifos).
+- [ ] D3–D6 nodo de pantalla.

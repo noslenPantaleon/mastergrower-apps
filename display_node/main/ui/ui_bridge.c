@@ -10,7 +10,7 @@
 #include "freertos/queue.h"
 #include "lvgl.h"
 #include "state_store.h"
-#include "ui_status.h"
+#include "ui_api.h"
 
 static const char *TAG = "ui_bridge";
 
@@ -40,31 +40,25 @@ static void on_change(ss_change_t change, const char *node_id)
 static void drain(lv_timer_t *t)
 {
     static uint32_t since_tick;
-    bool nodes = false, events = false, conn = false;
+    uint32_t dirty = 0;
     ui_msg_t m;
     while (xQueueReceive(s_q, &m, 0) == pdTRUE) {
-        nodes |= m.change == SS_CHANGE_NODE;
-        events |= m.change == SS_CHANGE_EVENT;
-        conn |= m.change == SS_CHANGE_CONN;
+        dirty |= m.change == SS_CHANGE_NODE ? UI_DIRTY_NODES
+               : m.change == SS_CHANGE_EVENT ? UI_DIRTY_EVENTS
+               : m.change == SS_CHANGE_CONN ? UI_DIRTY_CONN : UI_DIRTY_CMD;
     }
     if (s_overflow) {
         s_overflow = false;
-        nodes = events = conn = true;
+        dirty = UI_DIRTY_ALL;
     }
     since_tick += DRAIN_PERIOD_MS;
-    bool tick = since_tick >= TICK_PERIOD_MS;
-    if (tick) {
+    if (since_tick >= TICK_PERIOD_MS) {
         since_tick = 0;
+        dirty |= UI_DIRTY_TICK;
     }
-    /* Varios avisos seguidos se resuelven en un solo redibujado */
-    if (conn || tick) {
-        ui_status_refresh_conn();
-    }
-    if (nodes || tick) {
-        ui_status_refresh_nodes();
-    }
-    if (events) {
-        ui_status_refresh_events();
+    /* Varios avisos seguidos se resuelven en un solo refresco */
+    if (dirty) {
+        ui_refresh(dirty);
     }
 }
 

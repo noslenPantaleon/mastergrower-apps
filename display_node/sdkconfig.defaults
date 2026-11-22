@@ -48,9 +48,8 @@ CONFIG_LV_FONT_MONTSERRAT_20=y
 CONFIG_LV_FONT_MONTSERRAT_28=y
 CONFIG_LV_FONT_MONTSERRAT_36=y
 CONFIG_LV_FONT_DEFAULT_MONTSERRAT_20=y
-# Medición de fps y CPU (D0); se apaga cuando la interfaz esté estable
-CONFIG_LV_USE_SYSMON=y
-CONFIG_LV_USE_PERF_MONITOR=y
+# Fuentes con tildes: Montserrat-Medium.ttf embebida y dibujada en tiempo de ejecución (D2)
+CONFIG_LV_USE_TINY_TTF=y
 
 # ---- Red ----
 CONFIG_LWIP_LOCAL_HOSTNAME="mastergrow-disp"

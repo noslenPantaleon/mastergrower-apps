@@ -25,7 +25,8 @@
 #include "state_store.h"
 #include "system_config.h"
 #include "ui_bridge.h"
-#include "ui_status.h"
+#include "command_publisher.h"
+#include "ui_api.h"
 
 static const char *TAG = "app";
 
@@ -99,6 +100,7 @@ void app_main(void)
     ESP_ERROR_CHECK(esp_netif_init());
     ESP_ERROR_CHECK(esp_event_loop_create_default());
     state_store_init();
+    ESP_ERROR_CHECK(command_publisher_init());
 
     ESP_ERROR_CHECK(hal_board_init());
     esp_lcd_panel_handle_t panel = NULL;
@@ -116,7 +118,7 @@ void app_main(void)
         return;
     }
     if (lvgl_port_lock(0)) {
-        ui_status_create();
+        ui_init();
         ESP_ERROR_CHECK(ui_bridge_start());
         lvgl_port_unlock();
     }

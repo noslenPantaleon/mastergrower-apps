@@ -7,6 +7,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "cJSON.h"
+#include "command_publisher.h"
 #include "esp_heap_caps.h"
 #include "esp_log.h"
 #include "freertos/FreeRTOS.h"
@@ -93,6 +94,8 @@ static void handle(rx_msg_t *r)
         ok = state_store_apply_status(kind, id, r->data, r->len);
     } else if (strcmp(channel, MG_CH_EVENT) == 0) {
         ok = state_store_apply_event(id, r->data, r->len);
+    } else if (strcmp(channel, MG_CH_CMD_ACK) == 0) {
+        command_publisher_on_ack(id, r->data, r->len);
     }
     if (!ok) {
         ESP_LOGW(TAG, "Mensaje inválido de %s/%s", id, channel);
@@ -158,6 +161,7 @@ static void net_task(void *arg)
             }
         }
         update_conn();  // la hora se vuelve válida sin evento de MQTT: se revisa cada segundo
+        command_publisher_tick();
     }
 }
 
@@ -189,7 +193,8 @@ esp_err_t net_task_start(void)
         .lwt_retain = true,
     };
     ESP_ERROR_CHECK(mg_mqtt_start(&mcfg));
-    const char *filters[] = { "growlab/+/+/status", "growlab/ctrl/+/state", "growlab/+/+/event" };
+    const char *filters[] = { "growlab/+/+/status", "growlab/ctrl/+/state", "growlab/+/+/event",
+                              "growlab/cam/+/cmd/ack" };
     for (size_t i = 0; i < sizeof(filters) / sizeof(filters[0]); i++) {
         mg_mqtt_subscribe(filters[i], 1, on_mqtt_msg, NULL);
     }

@@ -56,6 +56,7 @@ typedef enum {
     SS_CHANGE_NODE,   /**< cambió un nodo (node_id) */
     SS_CHANGE_EVENT,  /**< llegó un evento (node_id del emisor) */
     SS_CHANGE_CONN,   /**< cambió WiFi, MQTT o la hora */
+    SS_CHANGE_CMD,    /**< cambió el estado de un comando enviado a node_id (command_publisher) */
 } ss_change_t;
 
 typedef void (*ss_listener_t)(ss_change_t change, const char *node_id);
@@ -64,6 +65,9 @@ void state_store_init(void);
 
 /** @brief Hasta 4 observadores; se llaman en la tarea que produjo el cambio. */
 void state_store_subscribe(ss_listener_t cb);
+
+/** @brief Avisa a los observadores un cambio que no es del modelo (p. ej. SS_CHANGE_CMD). */
+void state_store_notify(ss_change_t change, const char *node_id);
 
 /** @brief Aplica un status (cam/disp) o state (ctrl). Devuelve false si el JSON no sirve. */
 bool state_store_apply_status(mg_node_kind_t kind, const char *node_id, const char *json, size_t len);
