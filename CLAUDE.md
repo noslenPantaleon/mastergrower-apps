@@ -27,7 +27,9 @@ El Contrato .docx de referencia usa nombres en español: equivalencia en `contra
 - El XIAO aparece como `/dev/cu.usbmodem101`.
 - Backend: `cd backend && docker compose up -d --build` (Docker vía OrbStack: `~/.orbstack/bin/docker`).
   Claves en `backend/.env` (gitignored, generadas al azar). Tests: `uv run pytest`, lint: `uv run ruff check .`
-- Ver tráfico MQTT: `backend/scripts/mqtt_watch.sh`. Enviar comando: `backend/scripts/cam_cmd.sh capture_now`.
+- Ver tráfico MQTT: `backend/scripts/mqtt_watch.sh`; validarlo contra los esquemas:
+  `cd backend && uv run python scripts/mqtt_validate.py 60`.
+- Si cambia la API: `uv run python scripts/export_contract.py` (regenera `contract/openapi.json`). Enviar comando: `backend/scripts/cam_cmd.sh capture_now`.
 - Capturas subidas: `http://localhost:8000/gallery?token=<token dev de API_USER_TOKENS en backend/.env>`.
 - La red del usuario NO responde NTP de pool.ntp.org por IPv4; time.google.com sí (es el primario).
 - **Nunca `uv run --active` con el entorno de IDF activado**: instala las dependencias del backend
@@ -151,5 +153,11 @@ El Contrato .docx de referencia usa nombres en español: equivalencia en `contra
       capture_now en pleno stream sale en UXGA y el stream retoma; el timer se difiere y sale al
       terminar. Medido en la placa: primer cuadro 163–209 ms; QVGA 10,0 fps (~6 KB), VGA 10,0 fps
       (13 KB), 0 descartes.
-- [ ] C9 extras.
-      Backend: B6 contrato exportado. Luego nodo de pantalla D0–D6.
+- [x] **B6** — `contract/openapi.json` (export estable con `scripts/export_contract.py`, test que
+      falla si queda viejo); `tests/test_contract.py` (esquemas válidos + ejemplos, comandos de la
+      API vs `cmd.schema.json`, enums de la API = esquemas); `scripts/mqtt_validate.py` valida el
+      tráfico real (probado con la placa: status y cmd/ack OK). `jsonschema` + `rfc3339-validator`
+      (sin este último `date-time` no se valida). 79 tests.
+- [ ] C9 extras (OTA, aprovisionamiento BLE, TLS, prueba de 24 h). El BH1750 (lux) pasa al
+      módulo de control; la cámara tomaría `lux` de ahí para `sensor_snapshot`.
+      Luego nodo de pantalla D0–D6 (la placa ya está disponible).

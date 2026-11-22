@@ -1,5 +1,13 @@
 # Changelog del contrato
 
+## [contrato B / schema_version 1] — 2026-11-22 (B6)
+- `contract/openapi.json` generado por FastAPI (`backend/scripts/export_contract.py`); un test
+  falla si queda desactualizado respecto de la API.
+- Tests de contrato (`backend/tests/test_contract.py`): esquemas válidos con ejemplos que
+  cumplen, comandos de la API contra `cmd.schema.json`, enums de la API iguales a los esquemas.
+- `backend/scripts/mqtt_validate.py`: valida en vivo el tráfico del broker contra los esquemas
+  (así se comprueba el firmware de cada nodo).
+
 ## [contrato B / schema_version 1] — 2026-11-22 (C8)
 - Nodo de cámara: `start_stream` responde `accepted` y, cuando envió el primer cuadro, `done`;
   si no pudo abrir el WebSocket, `rejected` con `reason: "stream_connect_failed"` (o

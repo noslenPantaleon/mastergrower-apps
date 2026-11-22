@@ -40,6 +40,9 @@ curl http://localhost:8000/api/v1/health
   `GET/PUT/DELETE /api/v1/config/nodes/{id}/override` (ver `contract/http/config.md`).
 - Capturas subidas por los nodos: `http://localhost:8000/gallery?token=<token de usuario>`
   (`API_USER_TOKENS` en `.env`). Documentación interactiva: `http://localhost:8000/docs`.
+- Contrato: `uv run python scripts/export_contract.py` regenera `contract/openapi.json` (un test
+  avisa si quedó viejo); `uv run python scripts/mqtt_validate.py 60` valida el tráfico MQTT real
+  contra `contract/mqtt/schemas`.
 - Tests y lint: `uv run pytest` · `uv run ruff check .`. Migraciones: `uv run alembic revision --autogenerate -m "..."`
   (se aplican solas al arrancar el contenedor).
 - Desarrollo de la API: `uv sync`, `uv run pytest`, `uv run ruff check .`

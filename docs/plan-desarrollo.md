@@ -218,7 +218,7 @@ el LWT; `capture_now` publicado a mano recibe `accepted`.
 
 **Hecho:** primer cuadro en menos de 3 s, al menos 5 fps a QVGA en la LAN.
 
-**C9 — Extras:** BH1750 (`hal_light`, I2C en pines libres, no en el bus SCCB de la cámara), OLED
+**C9 — Extras:** ~~BH1750~~ (pasa al módulo de control: la cámara tomaría `lux` de ahí), OLED
 opcional, aprovisionamiento BLE, OTA, activar TLS, prueba continua de 24 h.
 
 ### Backend FastAPI (en paralelo)
