@@ -123,5 +123,13 @@ El Contrato .docx de referencia usa nombres en español: equivalencia en `contra
       Sospechosa o con evento → `storage_queue_promote` (`_n_` → `_h_`, sube primero). `hybrid`/`model`
       se comportan como `hsv` hasta que exista el modelo. Medido: 200×150 en ~340 ms desde SVGA.
       Umbrales de color sin calibrar: hace falta un set de imágenes propias (sana / clorosis / seca).
+- [x] **B4** — tabla `zones` (`grow_mode` substrate/coco_coir/dwc, `light_cycle` {start,end}) y
+      `node_tokens` (solo SHA-256, revocable). `POST /nodes` da de alta y entrega el token UNA vez;
+      `POST/DELETE /nodes/{id}/token` rota/revoca; `PUT /nodes/{id}/zone`; `GET/POST /zones`,
+      `GET/PATCH/DELETE /zones/{id}` (409 si tiene nodos). Config: override → **zona** → global →
+      default (solo `light_window`); mover de zona o cambiar `light_cycle` crea versión y publica
+      `refresh_config`. `API_NODE_TOKENS` se importa a la base al arrancar (si nunca se vio y el
+      nodo no tiene otro vigente). Tokens de usuario siguen en `.env`. 48 tests. Probado contra
+      Postgres: `cam-01` en `zone-a` (06:00–00:00, igual que el default), config v7.
 - [ ] C8 vista en vivo · C9 extras.
-      Backend: B4 nodos/zonas · B5 stream · B6 contrato exportado. Luego nodo de pantalla D0–D6.
+      Backend: B5 stream · B6 contrato exportado. Luego nodo de pantalla D0–D6.

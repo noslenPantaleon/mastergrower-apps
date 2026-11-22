@@ -5,5 +5,10 @@ from app.models.capture import Capture
 from app.models.config import ConfigGlobal, ConfigNode, ConfigRevision
 from app.models.event import Event
 from app.models.node import Node
+from app.models.node_token import NodeToken
+from app.models.zone import Zone
 
-__all__ = ["Base", "Capture", "ConfigGlobal", "ConfigNode", "ConfigRevision", "Event", "Node"]
+__all__ = [
+    "Base", "Capture", "ConfigGlobal", "ConfigNode", "ConfigRevision", "Event", "Node",
+    "NodeToken", "Zone",
+]

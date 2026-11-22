@@ -67,7 +67,7 @@ def validate_patch(
     return out, errors
 
 
-Source = Literal["default", "global", "override"]
+Source = Literal["default", "global", "zone", "override"]
 
 
 class _Versioned(BaseModel):

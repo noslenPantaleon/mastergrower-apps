@@ -2,6 +2,7 @@
 
 from datetime import UTC, datetime, timedelta
 
+from app.models.zone import Zone
 from app.services.ingest import handle_message
 from tests.conftest import TOKEN_CAM, USER, upload
 from tests.test_ingest import event, status
@@ -11,6 +12,8 @@ CAM = {"Authorization": f"Bearer {TOKEN_CAM}"}
 
 
 async def _seed(db):
+    db.add_all([Zone(zone_id="zone-a", name="A"), Zone(zone_id="zone-b", name="B")])
+    await db.commit()
     await handle_message(db, "growlab/cam/cam-01/status", status(zone_id="zone-a"), now=NOW)
     await handle_message(db, "growlab/cam/cam-02/status",
                          status(node_id="cam-02", zone_id="zone-b"), now=NOW)

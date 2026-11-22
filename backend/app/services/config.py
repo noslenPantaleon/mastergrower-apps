@@ -1,4 +1,4 @@
-"""Resolución override → global → default, cambios con revisión y versión por nodo."""
+"""Resolución override → zona → global → default, cambios con revisión y versión por nodo."""
 
 import re
 from dataclasses import dataclass
@@ -11,7 +11,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.errors import ApiError
 from app.models.config import GLOBAL_SCOPE, ConfigGlobal, ConfigNode, ConfigRevision
+from app.models.node import Node
+from app.models.zone import Zone
 from app.schemas.config import PARAMS_BY_KIND, defaults, validate_patch
+from app.services.zones import zone_scope
 
 NODE_ID_RE = re.compile(r"^(cam|ctrl|disp)-[0-9]{2,}$")
 
@@ -58,6 +61,21 @@ async def global_view(db: AsyncSession) -> dict[str, Any]:
     return {"version": ver.number, "updated_at": ver.at, "config": config, "sources": sources}
 
 
+# Parámetros que puede fijar una zona: parámetro de config → columna de la tabla zones
+ZONE_PARAMS = {"light_window": "light_cycle"}
+
+
+async def _zone(db: AsyncSession, node_id: str) -> Zone | None:
+    node = await db.get(Node, node_id)
+    return await db.get(Zone, node.zone_id) if node and node.zone_id else None
+
+
+def _scopes(node_id: str, zone: Zone | None) -> list[str]:
+    """Revisiones que afectan a un nodo: global, la de su zona actual y las propias (que
+    incluyen sus cambios de zona)."""
+    return [GLOBAL_SCOPE, node_id] + ([zone_scope(zone.zone_id)] if zone else [])
+
+
 async def node_view(db: AsyncSession, node_id: str) -> dict[str, Any]:
     model = PARAMS_BY_KIND.get(node_kind(node_id))
     config = defaults(model) if model else {}
@@ -65,17 +83,22 @@ async def node_view(db: AsyncSession, node_id: str) -> dict[str, Any]:
     for k, v in (await _rows(db, ConfigGlobal)).items():
         if k in config:
             config[k], sources[k] = v, "global"
+    zone = await _zone(db, node_id)
+    if zone:
+        for k, column in ZONE_PARAMS.items():
+            if k in config and getattr(zone, column) is not None:
+                config[k], sources[k] = getattr(zone, column), "zone"
     for k, v in (await _rows(db, ConfigNode, node_id=node_id)).items():
         if k in config:
             config[k], sources[k] = v, "override"
-    ver = await _version(db, [GLOBAL_SCOPE, node_id])
+    ver = await _version(db, _scopes(node_id, zone))
     return {"node_id": node_id, "version": ver.number, "updated_at": ver.at,
             "config": config, "sources": sources}
 
 
 async def override_view(db: AsyncSession, node_id: str) -> dict[str, Any]:
     node_kind(node_id)
-    ver = await _version(db, [GLOBAL_SCOPE, node_id])
+    ver = await _version(db, _scopes(node_id, await _zone(db, node_id)))
     return {"node_id": node_id, "version": ver.number, "updated_at": ver.at,
             "override": await _rows(db, ConfigNode, node_id=node_id)}
 

@@ -1,44 +1,22 @@
 """Configuración (Contrato §5.4 y §7, contract/http/config.md)."""
 
-import logging
 from typing import Annotated, Any
 
 from fastapi import APIRouter, BackgroundTasks, Body, Depends, Header, Request, Response
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.db import get_session
 from app.core.errors import ApiError
 from app.core.security import ReaderDep, UserDep
-from app.models.node import Node
-from app.mqtt.ingestor import command
+from app.mqtt.refresh import cam_nodes, notify_refresh
 from app.schemas.config import GlobalConfigOut, NodeConfigOut, NodeOverrideOut
 from app.services import config as svc
-
-log = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/config", tags=["config"])
 
 DbDep = Annotated[AsyncSession, Depends(get_session)]
 Patch = Annotated[dict[str, Any], Body(description="parámetros a cambiar; null = borrar",
                                         examples=[{"capture_interval_min": 60}])]
-
-
-async def _notify(request: Request, node_ids: list[str], version: int) -> None:
-    """Publica refresh_config a cada nodo (mejor esfuerzo; el nodo también consulta solo)."""
-    ingestor = getattr(request.app.state, "ingestor", None)
-    if ingestor is None:
-        return
-    sent = 0
-    for nid in node_ids:
-        msg = command(nid, "refresh_config", f"cfg-{version}-{nid}", {"version": version})
-        sent += await ingestor.publish(f"growlab/cam/{nid}/cmd", msg)
-    log.info("Config v%d: refresh_config enviado a %d/%d nodos", version, sent, len(node_ids))
-
-
-async def _cam_nodes(db: AsyncSession) -> list[str]:
-    q = select(Node.node_id).where(Node.kind == "cam").order_by(Node.node_id)
-    return list((await db.execute(q)).scalars())
 
 
 def _etag(version: int) -> str:
@@ -58,7 +36,7 @@ async def put_global(
 ) -> dict[str, Any]:
     version = await svc.update_global(db, patch, user.name)
     if version is not None:
-        bg.add_task(_notify, request, await _cam_nodes(db), version)
+        bg.add_task(notify_refresh, request, await cam_nodes(db), version)
     return await svc.global_view(db)
 
 
@@ -95,7 +73,7 @@ async def put_override(
 ) -> dict[str, Any]:
     version = await svc.update_override(db, node_id, patch, user.name)
     if version is not None and svc.node_kind(node_id) == "cam":
-        bg.add_task(_notify, request, [node_id], version)
+        bg.add_task(notify_refresh, request, [node_id], version)
     view = await svc.node_view(db, node_id)
     response.headers["ETag"] = _etag(view["version"])
     return view
@@ -107,5 +85,5 @@ async def delete_override(
 ) -> Response:
     version = await svc.delete_override(db, node_id, user.name)
     if version is not None and svc.node_kind(node_id) == "cam":
-        bg.add_task(_notify, request, [node_id], version)
+        bg.add_task(notify_refresh, request, [node_id], version)
     return Response(status_code=204)

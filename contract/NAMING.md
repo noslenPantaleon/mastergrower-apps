@@ -44,6 +44,7 @@ rutas y tablas. Los comentarios, los logs y la documentación siguen en español
 | prioridad | `normal`, `alta` | `normal`, `high` |
 | acción | `set_actuador`, `set_modo` (el resto ya en inglés) | `set_actuator`, `set_mode` |
 | estado del evento | `abierto`, `reconocido`, `resuelto` | `open`, `acknowledged`, `resolved` |
+| modo de cultivo (zona) | sustrato, fibra de coco, hidroponía DWC | `substrate`, `coco_coir`, `dwc` |
 | motivo de rechazo (ack) | — | `unsupported_schema_version`, `invalid_format`, `expired`, `unsupported_action`, `outside_light_window`, `min_interval`, `queue_full`, `camera_error`, `out_of_memory`, `config_unavailable` (refresh_config sin respuesta de la API) |
 
 ## Rutas HTTP y tablas
@@ -52,11 +53,12 @@ rutas y tablas. Los comentarios, los logs y la documentación siguen en español
 |---|---|
 | `/capturas`, `/capturas/{id}/imagen` | `/captures`, `/captures/{id}/image` |
 | `/eventos`, `/nodos`, `/zonas` | `/events`, `/nodes`, `/zones` |
+| `PUT /nodos/{id}/zona` | `PUT /nodes/{id}/zone` (+ `POST/DELETE /nodes/{id}/token`, `PATCH/DELETE /zones/{id}`, agregados) |
 | `/config/nodos/{id}` | `/config/nodes/{id}` |
 | `/stream/sesiones` | `/stream/sessions` |
 | tablas `capturas`, `eventos`, `nodos`, `zonas`, `stream_sesiones` | `captures`, `events`, `nodes`, `zones`, `stream_sessions` |
 | paginación `limite` / `cursor` · filtros `desde` / `hasta` | `limit` / `cursor` · `since` / `until` |
 | errores `codigo` / `mensaje` / `detalle` | `code` / `message` / `detail` |
-| — (agregados) | evento: `acknowledged_at`, `acknowledged_by`, `received_at`; nodo: `status_ts`, `last_status`; error `conflict` (409) |
+| — (agregados) | evento: `acknowledged_at`, `acknowledged_by`, `received_at`; nodo: `status_ts`, `last_status`, `registered_at`; zona: `node_ids`; tabla `node_tokens`; error `conflict` (409) |
 
 Los temas MQTT (`growlab/{kind}/{id}/{status|state|event|cmd|cmd/ack}`) no cambian.

@@ -11,6 +11,7 @@ EventType = Literal[
     "early_lights_off", "plant_anomaly", "sd_full", "camera_error", "node_disconnected"
 ]
 EventState = Literal["open", "acknowledged", "resolved"]
+GrowMode = Literal["substrate", "coco_coir", "dwc"]  # SRS de control F-12
 
 
 def utc(dt: datetime) -> datetime:

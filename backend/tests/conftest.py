@@ -14,6 +14,7 @@ from app.core.config import Settings, get_settings
 from app.core.db import get_session
 from app.main import create_app
 from app.models import Base
+from app.services.nodes import import_env_tokens
 from app.storage.image_store import LocalImageStore, get_image_store
 
 TOKEN_CAM = "tok-cam-01"
@@ -54,6 +55,9 @@ async def client(settings, maker) -> AsyncIterator[AsyncClient]:
     async def _session() -> AsyncIterator[AsyncSession]:
         async with maker() as s:
             yield s
+
+    async with maker() as s:  # lo mismo que hace el lifespan al arrancar
+        await import_env_tokens(s, settings.node_tokens)
 
     store = LocalImageStore(settings.images_dir)
     app = create_app()

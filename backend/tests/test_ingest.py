@@ -7,7 +7,7 @@ from typing import get_args
 
 from sqlalchemy import select
 
-from app.models import Event, Node
+from app.models import Event, Node, Zone
 from app.services.ingest import handle_message, parse_topic
 
 NOW = datetime(2026, 11, 19, 21, 0, 0, tzinfo=UTC)
@@ -65,7 +65,11 @@ async def test_retained_status_uses_message_ts(db):
     assert n.last_seen.replace(tzinfo=UTC) == datetime(2026, 11, 19, 20, 59, 58, tzinfo=UTC)
 
 
-async def test_zone_from_node_only_if_unset(db):
+async def test_zone_from_node_only_if_unset_and_known(db):
+    await handle_message(db, "growlab/cam/cam-01/status", status(zone_id="zone-q"), now=NOW)
+    assert (await db.get(Node, "cam-01")).zone_id is None  # zona inexistente: se ignora
+    db.add_all([Zone(zone_id="zone-a", name="A"), Zone(zone_id="zone-b", name="B")])
+    await db.commit()
     await handle_message(db, "growlab/cam/cam-01/status", status(zone_id="zone-a"), now=NOW)
     await handle_message(db, "growlab/cam/cam-01/status", status(zone_id="zone-b"), now=NOW)
     assert (await db.get(Node, "cam-01")).zone_id == "zone-a"

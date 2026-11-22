@@ -1,5 +1,19 @@
 # Changelog del contrato
 
+## [contrato B / schema_version 1] — 2026-11-22 (B4)
+- HTTP: `POST /nodes` (alta con emisión de token), `POST/DELETE /nodes/{id}/token` (rotar y
+  revocar), `PUT /nodes/{id}/zone` ([`http/nodes.md`](http/nodes.md)); `GET/POST /zones`,
+  `GET/PATCH/DELETE /zones/{id}` ([`http/zones.md`](http/zones.md)).
+- Tokens de nodo en la base (tabla `node_tokens`, solo el hash), revocables. Los de
+  `API_NODE_TOKENS` se importan al arrancar.
+- Zona: `zone_id`, `name`, `grow_mode` (`substrate`, `coco_coir`, `dwc`), `light_cycle`
+  (`{start, end}`). Nodo: agregado `registered_at`.
+- Config: nivel **zona** entre global y override para `light_window` (`sources` puede valer
+  `zone`). Cambiar la ventana de una zona o mover un nodo de zona crea una versión nueva y
+  publica `refresh_config`.
+- El `zone_id` del `status` de un nodo ya no crea zonas: solo se adopta si existe y el nodo no
+  tiene una.
+
 ## [contrato B / schema_version 1] — 2026-11-20 (C7)
 - `local_analysis` de los metadatos de captura definido (HSV): `green_ratio`, `yellow_brown_ratio`,
   `brightness`, `dark_ratio`, `dark_scene`, `low_plant_coverage`, `suspicion_score`, `threshold`,

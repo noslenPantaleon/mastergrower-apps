@@ -14,6 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.event import Event
 from app.models.node import Node
+from app.models.zone import Zone
 from app.schemas.mqtt import EventMsg, StatusMsg
 
 log = logging.getLogger(__name__)
@@ -98,7 +99,9 @@ async def _status(
         node.camera_type = msg.camera_type
     if msg.firmware:
         node.firmware = msg.firmware
-    if msg.zone_id and not node.zone_id:  # hasta B4 se adopta la zona que informa el nodo
+    # La zona la asigna la API (PUT /nodes/{id}/zone); la que informa el nodo solo se adopta si
+    # el nodo no tiene una y esa zona existe
+    if msg.zone_id and not node.zone_id and await db.get(Zone, msg.zone_id) is not None:
         node.zone_id = msg.zone_id
 
     if msg.node_state == "offline":

@@ -1,7 +1,9 @@
 """Autenticación por token (Contrato §5.1 y §8.2).
 
-- Token de nodo: lo usa cada nodo para subir sus capturas (solo con su propio node_id).
-- Token de usuario: pantalla, app y navegador; habilita las lecturas.
+- Token de nodo: lo usa cada nodo para subir sus capturas (solo con su propio node_id). Se
+  emite con POST /nodes y vive en la tabla node_tokens (hash); revocable (B4).
+- Token de usuario: pantalla, app y navegador; habilita las lecturas. Por ahora en el entorno
+  (API_USER_TOKENS).
 """
 
 import hmac
@@ -9,9 +11,12 @@ from dataclasses import dataclass
 from typing import Annotated, Literal
 
 from fastapi import Depends, Query, Request
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import Settings, get_settings
+from app.core.db import get_session
 from app.core.errors import ApiError
+from app.services.nodes import node_for_token
 
 
 @dataclass(frozen=True)
@@ -36,21 +41,22 @@ def _bearer(request: Request) -> str | None:
     return None
 
 
-def _resolve(token: str | None, settings: Settings) -> Principal | None:
+async def _resolve(token: str | None, settings: Settings, db: AsyncSession) -> Principal | None:
     if not token:
         return None
-    if node := _lookup(token, settings.node_tokens):
-        return Principal("node", node)
     if user := _lookup(token, settings.user_tokens):
         return Principal("user", user)
+    if node := await node_for_token(db, token):
+        return Principal("node", node)
     return None
 
 
 SettingsDep = Annotated[Settings, Depends(get_settings)]
+DbDep = Annotated[AsyncSession, Depends(get_session)]
 
 
-async def require_node(request: Request, settings: SettingsDep) -> Principal:
-    p = _resolve(_bearer(request), settings)
+async def require_node(request: Request, settings: SettingsDep, db: DbDep) -> Principal:
+    p = await _resolve(_bearer(request), settings, db)
     if p is None:
         raise ApiError(401, "Token ausente o inválido")
     if p.kind != "node":
@@ -61,16 +67,17 @@ async def require_node(request: Request, settings: SettingsDep) -> Principal:
 async def require_reader(
     request: Request,
     settings: SettingsDep,
+    db: DbDep,
     token: Annotated[str | None, Query(description="alternativa al encabezado, para <img>")] = None,
 ) -> Principal:
-    p = _resolve(_bearer(request) or token, settings)
+    p = await _resolve(_bearer(request) or token, settings, db)
     if p is None:
         raise ApiError(401, "Token ausente o inválido")
-    return p  # un nodo también puede leer (p. ej. para depurar); B4 afina permisos
+    return p  # un nodo también puede leer (p. ej. para depurar)
 
 
-async def require_user(request: Request, settings: SettingsDep) -> Principal:
-    p = _resolve(_bearer(request), settings)
+async def require_user(request: Request, settings: SettingsDep, db: DbDep) -> Principal:
+    p = await _resolve(_bearer(request), settings, db)
     if p is None:
         raise ApiError(401, "Token ausente o inválido")
     if p.kind != "user":

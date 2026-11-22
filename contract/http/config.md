@@ -4,15 +4,16 @@ Base: `/api/v1`. Autenticación y errores como en [`captures.md`](captures.md).
 
 ## Modelo
 
-Cada parámetro se resuelve como **override del nodo → global → valor por defecto**. Un nodo sin
-override hereda el 100 % de la global; solo se guardan las excepciones (tablas `config_global` y
-`config_node`). Parámetros de cámara, tipos, rangos y valores por defecto:
+Cada parámetro se resuelve como **override del nodo → zona → global → valor por defecto**. Un
+nodo sin override hereda el 100 % de la global (y de su zona); solo se guardan las excepciones
+(tablas `config_global` y `config_node`). Hoy la zona aporta un solo parámetro: `light_window`, que
+sale de `light_cycle` de la zona si está definido ([`zones.md`](zones.md)). Parámetros de cámara, tipos, rangos y valores por defecto:
 [`schemas/cam_config.schema.json`](schemas/cam_config.schema.json).
 
 | Parámetro | Por defecto | Notas |
 |---|---|---|
 | `capture_interval_min` | 120 | 1–1440 |
-| `light_window` | `{"start": "06:00", "end": "00:00"}` | hora local; `end` ≤ `start` cruza la medianoche. En el Contrato su alcance es la zona: cuando existan zonas (B4) se agrega ese nivel entre global y nodo |
+| `light_window` | `{"start": "06:00", "end": "00:00"}` | hora local; `end` ≤ `start` cruza la medianoche. Alcance zona (Contrato §7): la de la zona pisa a la global |
 | `utc_offset_min` | -180 | huso de la ventana de luz (agregado: el nodo no tiene zona horaria) |
 | `analysis_mode` | `hybrid` | `hsv`, `hybrid`, `model` |
 | `resolution` / `resolution_full` | `SVGA` / `UXGA` | rutina / prioridad alta |
@@ -25,7 +26,8 @@ override hereda el 100 % de la global; solo se guardan las excepciones (tablas `
 
 Cada cambio (PUT o DELETE) crea una revisión numerada (`config_revisions`, con quién lo hizo y
 qué cambió). La **versión** de la configuración de un nodo es el número de la última revisión que
-lo afecta: una global o una de su override. Es un entero que solo crece; el nodo la guarda junto
+lo afecta: una global, una de su zona actual (`light_cycle`, scope `zone:{id}`) o una propia
+(override o cambio de zona, que se registra como `{"zone_id": ...}`). Es un entero que solo crece; el nodo la guarda junto
 con la config en flash y la compara para saber si tiene la última.
 
 ### Aviso a los nodos
@@ -33,8 +35,8 @@ con la config en flash y la compara para saber si tiene la última.
 Tras un cambio, la API publica en `growlab/cam/{id}/cmd` la acción `refresh_config` con
 `params: {"version": N}` (el nodo responde `done` cuando la aplicó, `done` + `already_current`
 si ya la tenía, o `rejected` + `config_unavailable` si no pudo consultar, y publica la versión
-aplicada en `status.config_version`) (a todos los nodos de cámara conocidos si el cambio es global, o solo al
-nodo del override). Es un aviso de mejor esfuerzo: el nodo además consulta al arrancar y de forma
+aplicada en `status.config_version`) (a todos los nodos de cámara conocidos si el cambio es global, a las cámaras de la zona si cambió
+su `light_cycle`, o solo al nodo del override o del cambio de zona). Es un aviso de mejor esfuerzo: el nodo además consulta al arrancar y de forma
 periódica.
 
 ## GET /config/global
@@ -73,7 +75,7 @@ La consulta el firmware. Token de usuario, o el token **de ese mismo nodo**.
   "version": 9,
   "updated_at": "2026-11-19T22:05:00Z",
   "config": { "...": "configuración efectiva completa" },
-  "sources": { "capture_interval_min": "override", "jpeg_quality": "global", "...": "default" }
+  "sources": { "capture_interval_min": "override", "light_window": "zone", "jpeg_quality": "global", "...": "default" }
 }
 ```
 
