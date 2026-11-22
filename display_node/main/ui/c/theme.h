@@ -59,6 +59,12 @@ lv_obj_t *theme_label(lv_obj_t *parent, th_font_t font, uint32_t color, const ch
 lv_obj_t *theme_chip(lv_obj_t *parent);
 void theme_chip_set(lv_obj_t *chip, const char *text, uint32_t bg, uint32_t fg);
 
+/** @brief Desplegable con el tema oscuro (opciones separadas por '\n'). */
+lv_obj_t *theme_dropdown(lv_obj_t *parent, const char *options);
+
+/** @brief Botón secundario (fondo de tarjeta interna). */
+lv_obj_t *theme_button_secondary(lv_obj_t *parent, const char *text);
+
 /** @brief Botón principal con una etiqueta (primer hijo). */
 lv_obj_t *theme_button(lv_obj_t *parent, const char *text);
 void theme_button_set(lv_obj_t *btn, const char *text, bool enabled);

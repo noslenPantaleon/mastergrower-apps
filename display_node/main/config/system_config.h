@@ -13,7 +13,9 @@
 #define SYS_CORE_NET   0
 #define SYS_CORE_UI    1
 
-#define SYS_LVGL_STACK     (8 * 1024)
+/* 24 KB en PSRAM: con 8 KB se desbordaba al armar el detalle de cámara (pestañas, desplegables,
+ * TinyTTF y cJSON en los callbacks de api_jobs) */
+#define SYS_LVGL_STACK     (24 * 1024)
 #define SYS_LVGL_PRIO      4
 #define SYS_NET_TASK_STACK 6144
 #define SYS_NET_TASK_PRIO  5
@@ -21,3 +23,5 @@
 #define SYS_THUMB_PRIO     3      /* debajo de net_task */
 #define SYS_LIVE_STACK     8192   /* HTTP de la sesión + decodificación JPEG */
 #define SYS_LIVE_PRIO      3
+#define SYS_API_JOBS_STACK 8192   /* HTTP + decodificación de imágenes del historial */
+#define SYS_API_JOBS_PRIO  3

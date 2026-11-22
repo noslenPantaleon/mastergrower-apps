@@ -116,3 +116,33 @@ void theme_button_set(lv_obj_t *btn, const char *text, bool enabled)
         lv_obj_add_state(lv_obj_get_child(btn, 0), LV_STATE_DISABLED);
     }
 }
+
+lv_obj_t *theme_button_secondary(lv_obj_t *parent, const char *text)
+{
+    lv_obj_t *b = theme_button(parent, text);
+    lv_obj_set_style_bg_color(b, th_color(TH_CARD_ALT), 0);
+    lv_obj_set_style_bg_color(b, th_color(TH_LINE), LV_STATE_PRESSED);
+    return b;
+}
+
+lv_obj_t *theme_dropdown(lv_obj_t *parent, const char *options)
+{
+    lv_obj_t *dd = lv_dropdown_create(parent);
+    lv_dropdown_set_options(dd, options);
+    lv_obj_set_height(dd, 44);
+    lv_obj_set_style_bg_color(dd, th_color(TH_CARD_ALT), 0);
+    lv_obj_set_style_border_width(dd, 0, 0);
+    lv_obj_set_style_radius(dd, 8, 0);
+    lv_obj_set_style_text_color(dd, th_color(TH_FG), 0);
+    lv_obj_set_style_text_font(dd, theme_font(TH_FONT_BODY), 0);
+    lv_obj_set_style_pad_ver(dd, 10, 0);
+    lv_obj_t *list = lv_dropdown_get_list(dd);
+    lv_obj_set_style_bg_color(list, th_color(TH_CARD_ALT), 0);
+    lv_obj_set_style_border_color(list, th_color(TH_LINE), 0);
+    lv_obj_set_style_text_color(list, th_color(TH_FG), 0);
+    lv_obj_set_style_text_font(list, theme_font(TH_FONT_BODY), 0);
+    lv_obj_set_style_bg_color(list, th_color(TH_ACCENT), LV_PART_SELECTED | LV_STATE_CHECKED);
+    lv_obj_set_style_bg_color(list, th_color(TH_ACCENT), LV_PART_SELECTED | LV_STATE_PRESSED);
+    lv_obj_set_style_max_height(list, 240, 0);
+    return dd;
+}

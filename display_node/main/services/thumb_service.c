@@ -14,7 +14,7 @@
 #include "freertos/semphr.h"
 #include "freertos/task.h"
 #include "freertos/idf_additions.h"
-#include "jpeg_decoder.h"
+#include "jpeg_util.h"
 #include "mg_api.h"
 #include "mg_time.h"
 #include "mg_wifi.h"
@@ -120,45 +120,9 @@ static bool parse_latest(const char *body, size_t len, thumb_info_t *info)
     return ok;
 }
 
-/** JPEG → RGB565 (orden nativo de LVGL) en PSRAM. */
 static esp_err_t decode(const uint8_t *jpg, size_t len, thumb_t *out)
 {
-    esp_jpeg_image_cfg_t cfg = {
-        .indata = (uint8_t *)jpg,
-        .indata_size = len,
-        .out_format = JPEG_IMAGE_FORMAT_RGB888,
-        .out_scale = JPEG_IMAGE_SCALE_0,
-    };
-    esp_jpeg_image_output_t info;
-    esp_err_t err = esp_jpeg_get_image_info(&cfg, &info);
-    if (err != ESP_OK) {
-        return err;
-    }
-    size_t px = (size_t)info.width * info.height;
-    uint8_t *rgb = heap_caps_malloc(px * 3, MALLOC_CAP_SPIRAM);
-    uint16_t *out565 = heap_caps_malloc(px * 2, MALLOC_CAP_SPIRAM);
-    if (!rgb || !out565) {
-        heap_caps_free(rgb);
-        heap_caps_free(out565);
-        return ESP_ERR_NO_MEM;
-    }
-    cfg.outbuf = rgb;
-    cfg.outbuf_size = px * 3;
-    esp_jpeg_image_output_t img;
-    err = esp_jpeg_decode(&cfg, &img);
-    if (err == ESP_OK) {
-        for (size_t i = 0; i < px; i++) {
-            const uint8_t *p = &rgb[i * 3];
-            out565[i] = (uint16_t)(((p[0] & 0xF8) << 8) | ((p[1] & 0xFC) << 3) | (p[2] >> 3));
-        }
-        out->pixels = out565;
-        out->w = img.width;
-        out->h = img.height;
-    } else {
-        heap_caps_free(out565);
-    }
-    heap_caps_free(rgb);
-    return err;
+    return jpeg_to_rgb565(jpg, len, &out->pixels, &out->w, &out->h);
 }
 
 /**

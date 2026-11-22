@@ -220,4 +220,18 @@ El Contrato .docx de referencia usa nombres en español: equivalencia en `contra
       `net_task` registra la memoria cada 10 s (interna ~95 KB libre).
       Cámara (C8): desde QVGA/VGA espera 200 ms y descarta 4 cuadros antes de capturar y verifica
       el tamaño (salían UXGA verdosas con media imagen blanca); el stream descarta 2 al volver.
-- [ ] D4, D6 nodo de pantalla.
+- [x] **D4** — `services/api_jobs` (tarea en núcleo 0, pila en PSRAM): pedidos HTTP cuyos callbacks
+      corren en la tarea de LVGL (`api_jobs_dispatch` desde `ui_bridge`); `api_get_image` entrega
+      JPEG ya decodificado (`services/jpeg_util`). Eventos desde la API (Abiertos/Todos, Reconocer =
+      PATCH); alarmas de la barra = eventos abiertos de la API (cada 60 s y al llegar eventos).
+      Detalle de cámara (tocar la tarjeta): pestañas Resumen (foto 320×240, captura, análisis, nodo,
+      capturar/en vivo), Historial (12 capturas, tocar = ver), Configuración (override con origen de
+      cada valor, Guardar = PUT, "Usar la global" = DELETE). Config: global (intervalo, ventana de luz
+      en medias horas, umbral HSV, análisis) + datos del equipo. Sin teclado ni PIN todavía.
+      **Pila de LVGL 24 KB en PSRAM** (`task_stack_caps`): con 8 KB se desbordaba al abrir el detalle.
+      **cJSON en PSRAM** (`cJSON_InitHooks` en `app_main`): sus nodos chicos iban a la RAM interna
+      y una lista de eventos la dejaba en 7 KB libres; ahora interna estable ~104 KB (mín 49).
+      Regla en la pantalla: todo lo que reserve memoria en volumen va a PSRAM; la interna queda
+      para DMA (bounce buffers del panel), WiFi y pilas que tocan la flash.
+- [ ] D6 nodo de pantalla (LVGL Pro, NTP + RTC, OTA). Pendientes chicos: alta de nodos y zonas
+      desde la pantalla (necesita teclado), PIN opcional, caché de miniaturas en la microSD.

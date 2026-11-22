@@ -34,6 +34,12 @@ static struct {
 
 /* ---------------------------------------------------------------- acciones */
 
+static void on_card(lv_event_t *e)
+{
+    cam_card_t *c = lv_event_get_user_data(e);
+    ui_shell_open_camera(c->node_id);
+}
+
 static void on_live(lv_event_t *e)
 {
     cam_card_t *c = lv_event_get_user_data(e);
@@ -59,6 +65,10 @@ static void card_create(cam_card_t *c, const char *node_id)
     lv_obj_set_size(c->card, CARD_W, CARD_H);
     lv_obj_set_flex_flow(c->card, LV_FLEX_FLOW_COLUMN);
     lv_obj_set_style_pad_row(c->card, 6, 0);
+    /* Tocar la tarjeta (fuera de los botones) abre el detalle */
+    lv_obj_add_flag(c->card, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_set_style_bg_color(c->card, th_color(TH_CARD_ALT), LV_STATE_PRESSED);
+    lv_obj_add_event_cb(c->card, on_card, LV_EVENT_CLICKED, c);
 
     lv_obj_t *thumb = lv_obj_create(c->card);
     lv_obj_remove_style_all(thumb);

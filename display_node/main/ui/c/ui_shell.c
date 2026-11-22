@@ -11,10 +11,13 @@
 #include "ui_api.h"
 #include "ui_common.h"
 #include "ui_thumbs.h"
+#include "api_jobs.h"
+#include "cJSON.h"
 
 typedef enum {
     SCR_HOME, SCR_ENV, SCR_GROW, SCR_ACT, SCR_CAMS, SCR_EVENTS, SCR_CONFIG, SCR_COUNT,
-    SCR_LIVE = SCR_COUNT,  /**< no está en la barra: se abre desde una cámara */
+    SCR_LIVE = SCR_COUNT,  /**< no están en la barra: se abren desde una cámara */
+    SCR_DETAIL,
     SCR_ALL
 } screen_id_t;
 
@@ -37,8 +40,11 @@ static struct {
     lv_obj_t *pages[SCR_ALL];
     lv_obj_t *nav[SCR_COUNT];
     screen_id_t current;
-    screen_id_t before_live;
+    screen_id_t before_live;    /**< pantalla de la barra desde la que se abrió live/detalle */
     char live_node[16];
+    int open_alarms;            /**< eventos abiertos según la API (-1 = todavía no se sabe) */
+    bool alarms_loading;
+    uint32_t alarm_tick;
 } s_sh;
 
 /* ---------------------------------------------------------------- barra superior */
@@ -83,7 +89,8 @@ static void topbar_refresh(void)
     }
     lv_label_set_text_fmt(s_sh.status, "·  Nodos %d/%d  ·", online, n);
 
-    int alarms = ui_active_alarms();
+    /* Eventos abiertos según la API; mientras no responde, estimación con lo recibido por MQTT */
+    int alarms = s_sh.open_alarms >= 0 ? s_sh.open_alarms : ui_active_alarms();
     if (alarms) {
         lv_label_set_text_fmt(s_sh.alarms, "%d alarma%s  ·", alarms, alarms == 1 ? "" : "s");
         lv_obj_remove_flag(s_sh.alarms, LV_OBJ_FLAG_HIDDEN);
@@ -126,9 +133,11 @@ static void page_create(screen_id_t id)
     case SCR_LIVE:
         scr_live_create(p, live_back);
         break;
+    case SCR_DETAIL:
+        scr_camera_create(p, live_back);
+        break;
     case SCR_CONFIG:
-        scr_placeholder_create(p, "Configuración", "Red, ciclo de luz, captura global, umbrales y alta "
-                               "de nodos: llega en D4.");
+        scr_config_create(p);
         break;
     default: break;
     }
@@ -140,6 +149,8 @@ static void refresh_current(uint32_t dirty)
     case SCR_HOME: scr_home_refresh(dirty); break;
     case SCR_CAMS: scr_cameras_refresh(dirty); break;
     case SCR_EVENTS: scr_events_refresh(dirty); break;
+    case SCR_DETAIL: scr_camera_refresh(dirty); break;
+    case SCR_CONFIG: scr_config_refresh(dirty); break;
     default: break;
     }
 }
@@ -157,14 +168,16 @@ static void show(screen_id_t id)
             lv_obj_set_flag(s_sh.pages[i], LV_OBJ_FLAG_HIDDEN, i != (int)id);
         }
         if (i < SCR_COUNT) {
-            /* En la vista en vivo queda marcada la pantalla desde la que se abrió */
-            screen_id_t marked = id == SCR_LIVE ? s_sh.before_live : id;
+            /* En live/detalle queda marcada la pantalla desde la que se abrieron */
+            screen_id_t marked = id >= SCR_COUNT ? s_sh.before_live : id;
             lv_obj_set_state(s_sh.nav[i], LV_STATE_CHECKED, i == (int)marked);
         }
     }
     s_sh.current = id;
     if (id == SCR_LIVE) {
         lv_label_set_text_fmt(s_sh.title, "En vivo · %s", s_sh.live_node);
+    } else if (id == SCR_DETAIL) {
+        lv_label_set_text_fmt(s_sh.title, "Cámara · %s", s_sh.live_node);
     } else {
         lv_label_set_text(s_sh.title, SCREENS[id].title ? SCREENS[id].title : "MasterGrow");
     }
@@ -176,9 +189,19 @@ static void live_back(void)
     show(s_sh.before_live);
 }
 
+void ui_shell_open_camera(const char *node_id)
+{
+    if (s_sh.current < SCR_COUNT) {
+        s_sh.before_live = s_sh.current;
+    }
+    strlcpy(s_sh.live_node, node_id, sizeof(s_sh.live_node));
+    show(SCR_DETAIL);
+    scr_camera_enter(node_id);
+}
+
 void ui_shell_open_live(const char *node_id)
 {
-    if (s_sh.current != SCR_LIVE) {
+    if (s_sh.current < SCR_COUNT) {
         s_sh.before_live = s_sh.current;
     }
     strlcpy(s_sh.live_node, node_id, sizeof(s_sh.live_node));
@@ -234,10 +257,41 @@ static void navbar_create(lv_obj_t *scr)
     lv_obj_center(ml);
 }
 
+/* ---------------------------------------------------------------- alarmas (API) */
+
+static void on_alarms(api_result_t *r, void *ctx)
+{
+    s_sh.alarms_loading = false;
+    if (r->status != 200 || !r->body) {
+        return;  // queda el último valor conocido
+    }
+    cJSON *root = cJSON_ParseWithLength(r->body, r->len);
+    s_sh.open_alarms = cJSON_GetArraySize(cJSON_GetObjectItemCaseSensitive(root, "items"));
+    cJSON_Delete(root);
+    topbar_refresh();
+}
+
+static void alarms_poll(void)
+{
+    if (s_sh.alarms_loading || !state_store_conn().wifi) {
+        return;
+    }
+    s_sh.alarms_loading = true;
+    if (api_get("/events?event_state=open&limit=100", 48 * 1024, on_alarms, NULL) != ESP_OK) {
+        s_sh.alarms_loading = false;
+    }
+}
+
+void ui_shell_alarms_changed(void)
+{
+    alarms_poll();
+}
+
 /* ---------------------------------------------------------------- ui_api */
 
 void ui_init(void)
 {
+    s_sh.open_alarms = -1;
     theme_init();
     lv_obj_t *scr = lv_screen_active();
     lv_obj_clean(scr);
@@ -256,6 +310,13 @@ void ui_init(void)
 
 void ui_refresh(uint32_t dirty)
 {
+    /* Alarmas: al llegar un evento o cambiar un nodo (la API abre/cierra node_disconnected) y cada 60 s */
+    if (dirty & (UI_DIRTY_EVENTS | UI_DIRTY_NODES)) {
+        alarms_poll();
+    } else if ((dirty & UI_DIRTY_TICK) && ++s_sh.alarm_tick >= 60) {
+        s_sh.alarm_tick = 0;
+        alarms_poll();
+    }
     if (dirty & UI_DIRTY_THUMB) {
         ui_thumbs_sync();
     }

@@ -22,6 +22,50 @@ void ui_hhmm(time_t t, char *buf, size_t len)
     snprintf(buf, len, "%02d:%02d", tm.tm_hour, tm.tm_min);
 }
 
+void ui_ddmm_hhmm(time_t t, char *buf, size_t len)
+{
+    if (!t) {
+        snprintf(buf, len, "--/-- --:--");
+        return;
+    }
+    t += (time_t)CONFIG_MG_UTC_OFFSET_MIN * 60;
+    struct tm tm;
+    gmtime_r(&t, &tm);
+    snprintf(buf, len, "%02d/%02d %02d:%02d", tm.tm_mday, tm.tm_mon + 1, tm.tm_hour, tm.tm_min);
+}
+
+time_t ui_parse_iso(const char *iso)
+{
+    time_t t = 0;
+    if (iso) {
+        mg_time_parse_iso(iso, &t);
+    }
+    return t;
+}
+
+const char *ui_trigger_title(const char *t)
+{
+    if (!t) {
+        return "-";
+    }
+    if (strcmp(t, "timer") == 0) {
+        return "Programada";
+    }
+    if (strcmp(t, "remote_command") == 0) {
+        return "Manual";
+    }
+    if (strcmp(t, "sensor_event") == 0) {
+        return "Por sensor";
+    }
+    if (strcmp(t, "post_actuation") == 0) {
+        return "Tras actuación";
+    }
+    if (strcmp(t, "schedule") == 0) {
+        return "Calendario";
+    }
+    return t;
+}
+
 void ui_age(int64_t s64, char *buf, size_t len)
 {
     int s = s64 > 999999999 ? 999999999 : (int)s64;

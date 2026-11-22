@@ -13,6 +13,15 @@
 /** @brief "14:32" en hora local (CONFIG_MG_UTC_OFFSET_MIN). */
 void ui_hhmm(time_t t, char *buf, size_t len);
 
+/** @brief "22/11 14:32" en hora local. */
+void ui_ddmm_hhmm(time_t t, char *buf, size_t len);
+
+/** @brief ISO-8601 (contrato) → time_t; 0 si no se puede. */
+time_t ui_parse_iso(const char *iso);
+
+/** @brief "Programada", "Manual", ... (trigger_type del contrato). */
+const char *ui_trigger_title(const char *trigger_type);
+
 /** @brief "hace 3 min", "hace 2 h"... */
 void ui_age(int64_t seconds, char *buf, size_t len);
 

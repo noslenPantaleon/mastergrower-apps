@@ -10,6 +10,7 @@
 #include "freertos/queue.h"
 #include "lvgl.h"
 #include "state_store.h"
+#include "api_jobs.h"
 #include "ui_api.h"
 
 static const char *TAG = "ui_bridge";
@@ -40,6 +41,7 @@ static void on_change(ss_change_t change, const char *node_id)
 static void drain(lv_timer_t *t)
 {
     static uint32_t since_tick;
+    api_jobs_dispatch();  // resultados de pedidos HTTP: sus callbacks tocan la interfaz
     uint32_t dirty = 0;
     ui_msg_t m;
     while (xQueueReceive(s_q, &m, 0) == pdTRUE) {

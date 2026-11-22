@@ -25,6 +25,8 @@
 #include "state_store.h"
 #include "system_config.h"
 #include "ui_bridge.h"
+#include "api_jobs.h"
+#include "cJSON.h"
 #include "command_publisher.h"
 #include "live_view.h"
 #include "thumb_service.h"
@@ -45,6 +47,7 @@ static lv_display_t *start_display(esp_lcd_panel_handle_t panel, esp_lcd_touch_h
     lvgl_port_cfg_t port_cfg = ESP_LVGL_PORT_INIT_CONFIG();
     port_cfg.task_priority = SYS_LVGL_PRIO;
     port_cfg.task_stack = SYS_LVGL_STACK;
+    port_cfg.task_stack_caps = MALLOC_CAP_SPIRAM;  // la tarea de LVGL no escribe la flash
     port_cfg.task_affinity = SYS_CORE_UI;
     if (lvgl_port_init(&port_cfg) != ESP_OK) {
         return NULL;
@@ -78,6 +81,21 @@ static lv_display_t *start_display(esp_lcd_panel_handle_t panel, esp_lcd_touch_h
     return disp;
 }
 
+static void *json_malloc(size_t size)
+{
+    return heap_caps_malloc(size, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
+}
+
+/**
+ * cJSON arma cada respuesta de la API con cientos de nodos chicos; con malloc iban a la RAM
+ * interna (todo pedido < 16 KB) y una lista de eventos la dejaba en 7 KB libres. En PSRAM.
+ */
+static void json_to_psram(void)
+{
+    cJSON_Hooks hooks = { .malloc_fn = json_malloc, .free_fn = heap_caps_free };
+    cJSON_InitHooks(&hooks);
+}
+
 static esp_err_t init_nvs(void)
 {
     esp_err_t err = nvs_flash_init();
@@ -98,11 +116,13 @@ void app_main(void)
         return;
     }
     log_memory("arranque");
+    json_to_psram();
     ESP_ERROR_CHECK(init_nvs());
     ESP_ERROR_CHECK(esp_netif_init());
     ESP_ERROR_CHECK(esp_event_loop_create_default());
     state_store_init();
     ESP_ERROR_CHECK(command_publisher_init());
+    ESP_ERROR_CHECK(api_jobs_start());
 
     ESP_ERROR_CHECK(hal_board_init());
     esp_lcd_panel_handle_t panel = NULL;
