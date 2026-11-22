@@ -1,0 +1,13 @@
+menu "MasterGrow - Nodo de pantalla"
+
+    config MG_NODE_ID
+        string "node_id"
+        default "disp-01"
+        help
+            Identificador único en el sistema (Contrato §3.1): disp-NN.
+
+    config MG_FIRMWARE_VERSION
+        string "Versión de firmware (se publica en status)"
+        default "0.1.0"
+
+endmenu

@@ -1,0 +1,4 @@
+# Copiar a sdkconfig.defaults.local (no se versiona) y completar. Tras editarlo: rm sdkconfig
+# (D1 en adelante: WiFi, broker y API)
+#CONFIG_MG_WIFI_SSID="mi-red"
+#CONFIG_MG_WIFI_PASSWORD="..."

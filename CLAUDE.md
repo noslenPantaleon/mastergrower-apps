@@ -45,6 +45,12 @@ El Contrato .docx de referencia usa nombres en español: equivalencia en `contra
 - Credenciales WiFi y MQTT (broker = IP de la Mac) en `camera_node/sdkconfig.defaults.local`
   (gitignored). Tras editarlo: `rm sdkconfig`. Si el usuario tiene un `idf.py monitor` abierto, el puerto
   queda ocupado: pedirle que lo cierre con Ctrl+] antes de grabar.
+- Pantalla: `cd display_node && idf.py -p /dev/cu.usbmodem1101 build flash` (USB nativo; si están
+  las dos placas, la pantalla es la de 16 MB de flash). **Nunca dejarla con `esptool --after
+  no-reset`**: queda marcado "forzar descarga" y cada reset por RTS cae en el bootloader
+  (`boot:0x0 … waiting for download`). Se sale con
+  `esptool --port <p> --before no-reset --after watchdog-reset chip-id` o con el botón RESET.
+  Para leer el arranque usar un lector que reabra el puerto (el USB se re-enumera en cada reset).
 - La extensión ESP-IDF de VS Code solo funciona abriendo la carpeta del nodo (`camera_node`), no la raíz.
 - En IDF 6.x, **mqtt, cjson y wifi_provisioning ya no vienen en IDF**: usar `espressif/mqtt`,
   `espressif/cjson`, `espressif/network_provisioning` del component registry.
@@ -160,4 +166,14 @@ El Contrato .docx de referencia usa nombres en español: equivalencia en `contra
       (sin este último `date-time` no se valida). 79 tests.
 - [ ] C9 extras (OTA, aprovisionamiento BLE, TLS, prueba de 24 h). El BH1750 (lux) pasa al
       módulo de control; la cámara tomaría `lux` de ahí para `sensor_snapshot`.
-      Luego nodo de pantalla D0–D6 (la placa ya está disponible).
+- [x] **D0** — `display_node` (Waveshare ESP32-S3-Touch-LCD-4.3B, N16R8). `node_hal`: `hal_board`
+      (I2C nuevo `i2c_master` en GPIO8/9 + CH422G: comando 0x24 = config, 0x38 = salidas EXIO;
+      EXIO1 reset táctil, EXIO2 luz, EXIO3 reset LCD, EXIO4 CS SD), `hal_lcd` (RGB565 16 MHz,
+      sincronismos 4/8/8, pclk flanco negativo, bounce 10 líneas, 2 fb en PSRAM; en IDF 6.1
+      `in/out_color_format` en vez de `bits_per_pixel`), `hal_touch` (GT911 0x5D: INT bajo
+      durante el reset). LVGL **9.3** fija (9.6 rompe con -Werror) + `esp_lvgl_port` 2.9 en el
+      núcleo 1, `avoid_tearing` + `direct_mode`. `SPIRAM_XIP_FROM_PSRAM`; sin
+      `LV_ATTRIBUTE_FAST_MEM_USE_IRAM` (choca con GCC 15). Arranque 0,84 s; libre 266 KB
+      internos / 6,1 MB PSRAM. Medido: 38–45 fps (tope = refresco del panel a 16 MHz), sin tearing
+      (barra animada entera); CPU 86–94 % con animación continua (incluye la espera del vsync). Datos de la placa sacados del ejemplo oficial 09_lvgl_v9_demo.
+- [ ] D1–D6 nodo de pantalla.

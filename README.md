@@ -76,3 +76,15 @@ Opciones propias en `idf.py menuconfig`:
 - `dependencies.lock` **sí** se versiona para builds reproducibles.
 - Cambios de mensajes o endpoints: primero en `contract/` (con entrada en `CHANGELOG.md`),
   después en los módulos.
+
+## Nodo de pantalla
+
+Waveshare ESP32-S3-Touch-LCD-4.3B (800×480, táctil GT911, LVGL 9).
+
+```sh
+cd display_node
+idf.py -p /dev/cu.usbmodem1101 build flash
+```
+
+D0: pantalla de prueba con un botón táctil, una barra animada (para ver tearing) y el monitor de
+fps de LVGL en la esquina.
