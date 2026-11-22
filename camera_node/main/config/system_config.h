@@ -21,6 +21,8 @@
 #define SYS_TRIGGER_PRIO       5
 #define SYS_ANALYSIS_STACK     8192   /* C7: decodificación JPEG + HSV */
 #define SYS_ANALYSIS_PRIO      4
+#define SYS_STREAM_STACK       6144   /* C8: cámara + esp_websocket_client_send_bin */
+#define SYS_STREAM_PRIO        5      /* debajo de captura: un capture_now pasa primero */
 
 #define SYS_NET_TASK_STACK     6144
 #define SYS_NET_TASK_PRIO      5

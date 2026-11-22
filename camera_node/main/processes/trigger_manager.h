@@ -42,6 +42,13 @@ esp_err_t trigger_manager_set_config(const trigger_config_t *cfg);
  */
 esp_err_t trigger_request(const trigger_req_t *req, const char **reason);
 
+/**
+ * @brief Vista en vivo activa (C8, Contrato §5.6): mientras dure, los disparos del timer se
+ *        difieren; el que haya quedado pendiente se dispara al terminar el stream.
+ *        Los disparos de prioridad alta (capture_now) no se difieren.
+ */
+void trigger_manager_set_streaming(bool streaming);
+
 /** @brief true si ahora es horario de luz (o si no hay hora válida para saberlo). */
 bool trigger_manager_light_window_active(void);
 

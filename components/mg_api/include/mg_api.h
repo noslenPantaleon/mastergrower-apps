@@ -53,6 +53,17 @@ void mg_api_resp_free(mg_api_resp_t *resp);
 /** @brief URL base configurada (para logs). */
 const char *mg_api_base_url(void);
 
+/** @brief Token Bearer del nodo (para clientes que no usan esp_http_client, p. ej. WebSocket). */
+const char *mg_api_token(void);
+
+/**
+ * @brief URL de WebSocket a partir de lo que manda la API (Contrato §5.6, ws_publish_url):
+ *        una URL absoluta ws:// o wss:// se usa tal cual; una ruta ("/api/v1/stream/...") se
+ *        resuelve contra el esquema, host y puerto de la URL base (http → ws, https → wss).
+ * @return ESP_OK, ESP_ERR_INVALID_ARG si no es URL ni ruta, ESP_ERR_INVALID_SIZE si no entra.
+ */
+esp_err_t mg_api_ws_url(const char *url_or_path, char *out, size_t out_len);
+
 #ifdef __cplusplus
 }
 #endif

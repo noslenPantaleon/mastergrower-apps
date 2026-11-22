@@ -25,7 +25,12 @@ static struct {
     TaskHandle_t task;
     trigger_config_t cfg;
     int64_t last_accepted_us; /**< 0 = nunca */
+    volatile bool streaming;
+    volatile bool timer_deferred; /**< un disparo del timer llegó durante el stream */
 } s_tm;
+
+#define NOTIFY_CONFIG      1
+#define NOTIFY_STREAM_END  2
 
 bool trigger_parse_hhmm(const char *s, uint16_t *out_min)
 {
@@ -156,17 +161,41 @@ static void trigger_task(void *arg)
         TickType_t now = xTaskGetTickCount();
         TickType_t wait = (int32_t)(next - now) > 0 ? next - now : 0;
 
-        if (xTaskNotifyWait(0, UINT32_MAX, NULL, wait) == pdTRUE) {
-            next = xTaskGetTickCount() + timer_period();  // cambió la config: reiniciar conteo
+        uint32_t why;
+        if (xTaskNotifyWait(0, UINT32_MAX, &why, wait) == pdTRUE) {
+            if (why == NOTIFY_CONFIG) {
+                next = xTaskGetTickCount() + timer_period();  // cambió la config: reiniciar conteo
+                continue;
+            }
+            /* NOTIFY_STREAM_END: el disparo diferido sale ahora; el conteo sigue igual */
+            if (!s_tm.timer_deferred) {
+                continue;
+            }
+            ESP_LOGI(TAG, "fin del stream: sale el disparo de timer diferido");
+        } else {
+            next += timer_period();
+        }
+
+        if (s_tm.streaming) {
+            s_tm.timer_deferred = true;
+            ESP_LOGI(TAG, "disparo de timer diferido: vista en vivo activa");
             continue;
         }
-        next += timer_period();
+        s_tm.timer_deferred = false;
 
         const char *reason;
         const trigger_req_t req = { .type = MG_TRIGGER_TIMER };
         if (trigger_request(&req, &reason) != ESP_OK) {
             ESP_LOGI(TAG, "disparo de timer omitido: %s", reason);
         }
+    }
+}
+
+void trigger_manager_set_streaming(bool streaming)
+{
+    s_tm.streaming = streaming;
+    if (!streaming && s_tm.timer_deferred && s_tm.task) {
+        xTaskNotify(s_tm.task, NOTIFY_STREAM_END, eSetValueWithoutOverwrite);
     }
 }
 
@@ -179,7 +208,7 @@ esp_err_t trigger_manager_set_config(const trigger_config_t *cfg)
     s_tm.cfg = *cfg;
     xSemaphoreGive(s_tm.lock);
     if (s_tm.task) {
-        xTaskNotify(s_tm.task, 1, eSetValueWithOverwrite);
+        xTaskNotify(s_tm.task, NOTIFY_CONFIG, eSetValueWithOverwrite);
     }
     ESP_LOGI(TAG, "config: cada %" PRIu32 " min, luz %02u:%02u–%02u:%02u (UTC%+d min), rutina %s, completa %s, "
              "mín %us", cfg->capture_interval_min, cfg->light_start_min / 60, cfg->light_start_min % 60,

@@ -7,6 +7,7 @@
 #include <inttypes.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
 #include <string.h>
 #include "esp_check.h"
 #include "esp_http_client.h"
@@ -27,6 +28,36 @@ static const char *TAG = "mg_api";
 const char *mg_api_base_url(void)
 {
     return CONFIG_MG_API_BASE_URL;
+}
+
+const char *mg_api_token(void)
+{
+    return CONFIG_MG_API_TOKEN;
+}
+
+esp_err_t mg_api_ws_url(const char *url_or_path, char *out, size_t out_len)
+{
+    if (!url_or_path || !out || !out_len) {
+        return ESP_ERR_INVALID_ARG;
+    }
+    int n;
+    if (strncmp(url_or_path, "ws://", 5) == 0 || strncmp(url_or_path, "wss://", 6) == 0) {
+        n = snprintf(out, out_len, "%s", url_or_path);
+    } else if (url_or_path[0] == '/') {
+        /* "http://host:8000/api/v1" → "ws://host:8000" + ruta */
+        const char *base = CONFIG_MG_API_BASE_URL;
+        bool tls = strncmp(base, "https://", 8) == 0;
+        const char *host = strstr(base, "://");
+        if (!host) {
+            return ESP_ERR_INVALID_ARG;
+        }
+        host += 3;
+        size_t host_len = strcspn(host, "/");
+        n = snprintf(out, out_len, "%s://%.*s%s", tls ? "wss" : "ws", (int)host_len, host, url_or_path);
+    } else {
+        return ESP_ERR_INVALID_ARG;
+    }
+    return (n > 0 && (size_t)n < out_len) ? ESP_OK : ESP_ERR_INVALID_SIZE;
 }
 
 void mg_api_resp_free(mg_api_resp_t *resp)

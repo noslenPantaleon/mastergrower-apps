@@ -10,6 +10,7 @@
 #include "esp_log.h"
 #include "esp_timer.h"
 #include "freertos/FreeRTOS.h"
+#include "freertos/semphr.h"
 #include "freertos/task.h"
 #include "mg_time.h"
 #include "net_task.h"
@@ -22,6 +23,17 @@ static const char *TAG = "capture_task";
 #define CAPTURE_TIMEOUT_MS  3000
 
 static volatile uint8_t s_quality_wanted;  /**< 0 = sin pedido */
+static SemaphoreHandle_t s_cam_lock;
+
+bool capture_task_camera_lock(TickType_t timeout)
+{
+    return s_cam_lock && xSemaphoreTake(s_cam_lock, timeout) == pdTRUE;
+}
+
+void capture_task_camera_unlock(void)
+{
+    xSemaphoreGive(s_cam_lock);
+}
 
 void capture_task_set_quality(uint8_t jpeg_quality)
 {
@@ -85,6 +97,7 @@ static void capture_task(void *arg)
         xQueueReceive(q_trigger, &t, portMAX_DELAY);
         int64_t latency_ms = (esp_timer_get_time() - t.requested_us) / 1000;
 
+        capture_task_camera_lock(portMAX_DELAY);  // si hay stream, espera a que suelte el cuadro actual
         hal_camera_info_t info;
         hal_camera_get_info(&info);
         uint8_t q = s_quality_wanted;
@@ -99,6 +112,7 @@ static void capture_task(void *arg)
         if (info.resolution != t.resolution) {
             esp_err_t err = hal_camera_set_resolution(t.resolution);
             if (err != ESP_OK) {
+                capture_task_camera_unlock();
                 fail(&t, "resolution_change", err);
                 continue;
             }
@@ -109,12 +123,14 @@ static void capture_task(void *arg)
         hal_frame_t frame;
         esp_err_t err = capture_with_retry(&frame);
         if (err != ESP_OK) {
+            capture_task_camera_unlock();
             fail(&t, "camera_error", err);
             continue;
         }
 
         capture_job_t *job = pipeline_job_new(&t, &frame);
         hal_camera_release(&frame);  // el framebuffer vuelve a la cámara cuanto antes
+        capture_task_camera_unlock();
         if (!job) {
             fail(&t, "out_of_memory", ESP_ERR_NO_MEM);
             continue;
@@ -146,6 +162,10 @@ static void capture_task(void *arg)
 
 esp_err_t capture_task_start(void)
 {
+    s_cam_lock = xSemaphoreCreateMutex();
+    if (!s_cam_lock) {
+        return ESP_ERR_NO_MEM;
+    }
     BaseType_t ok = xTaskCreatePinnedToCore(capture_task, "capture_task", SYS_CAPTURE_STACK, NULL,
                                             SYS_CAPTURE_PRIO, NULL, SYS_CORE_APP);
     return ok == pdPASS ? ESP_OK : ESP_ERR_NO_MEM;

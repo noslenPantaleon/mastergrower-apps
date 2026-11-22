@@ -1,5 +1,7 @@
 dependencies:
   idf: ">=6.0"
+  # Vista en vivo (C8): WebSocket de publicación hacia la API
+  espressif/esp_websocket_client: "^1.4.0"
   # Componentes compartidos del monorepo (raíz/components)
   mg_wifi:
     path: ../../components/mg_wifi

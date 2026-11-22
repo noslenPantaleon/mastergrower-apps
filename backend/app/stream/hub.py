@@ -85,7 +85,8 @@ class LiveSession:
     dropped_closed: int = 0  # descartes de espectadores que ya se fueron
     created_mono: float = field(default_factory=time.monotonic)
     idle_since: float | None = field(default_factory=time.monotonic)
-    frame_times: deque[float] = field(default_factory=lambda: deque(maxlen=120))
+    frame_times: deque[float] = field(default_factory=lambda: deque(maxlen=200))
+    first_frame_mono: float | None = None
     ended: asyncio.Event = field(default_factory=asyncio.Event)
 
     @property
@@ -94,11 +95,14 @@ class LiveSession:
 
     @property
     def fps(self) -> float:
+        """Cuadros recibidos en los últimos FPS_WINDOW_S segundos / duración de la ventana.
+        (No se usa el intervalo entre el primero y el último: por TCP llegan en ráfagas.)"""
         now = time.monotonic()
         recent = [t for t in self.frame_times if now - t <= FPS_WINDOW_S]
-        if len(recent) < 2:
+        if len(recent) < 2 or self.first_frame_mono is None:
             return 0.0
-        return round((len(recent) - 1) / max(recent[-1] - recent[0], 1e-3), 1)
+        window = min(FPS_WINDOW_S, now - self.first_frame_mono)
+        return round(len(recent) / max(window, 1e-3), 1)
 
     @property
     def dropped(self) -> int:
@@ -240,7 +244,10 @@ class StreamHub:
         s.frames += 1
         s.bytes += len(frame)
         s.last_frame = frame
-        s.frame_times.append(time.monotonic())
+        now = time.monotonic()
+        if s.first_frame_mono is None:
+            s.first_frame_mono = now
+        s.frame_times.append(now)
         for v in s.viewers:
             v.push(frame)
 

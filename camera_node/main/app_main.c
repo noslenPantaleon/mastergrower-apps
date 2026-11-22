@@ -34,6 +34,7 @@
 #include "processes/net_task.h"
 #include "processes/pipeline.h"
 #include "processes/trigger_manager.h"
+#include "processes/stream_task.h"
 #include "processes/upload_task.h"
 #include "system_config.h"
 
@@ -245,6 +246,13 @@ static esp_err_t start_network(void)
 
     net_task_register_cmd(MG_ACTION_CAPTURE_NOW, cmd_capture_now);
     net_task_register_cmd(MG_ACTION_REBOOT, cmd_reboot);
+    if (s_pipeline_ok) {
+        /* Vista en vivo: registra start_stream/stop_stream (sin cámara quedan unsupported_action). */
+        err = stream_task_start();
+        if (err != ESP_OK) {
+            ESP_LOGE(TAG, "stream_task no iniciada: %s", esp_err_to_name(err));
+        }
+    }
     ESP_ERROR_CHECK(net_task_start());
     /* Config remota: al arrancar, con refresh_config y periódica. Sin red queda la de NVS. */
     err = config_sync_task_start();

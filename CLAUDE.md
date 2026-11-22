@@ -30,10 +30,13 @@ El Contrato .docx de referencia usa nombres en español: equivalencia en `contra
 - Ver tráfico MQTT: `backend/scripts/mqtt_watch.sh`. Enviar comando: `backend/scripts/cam_cmd.sh capture_now`.
 - Capturas subidas: `http://localhost:8000/gallery?token=<token dev de API_USER_TOKENS en backend/.env>`.
 - La red del usuario NO responde NTP de pool.ntp.org por IPv4; time.google.com sí (es el primario).
+- **Nunca `uv run --active` con el entorno de IDF activado**: instala las dependencias del backend
+  en el venv de IDF y rompe `idf.py` (pasó con `click`). Reparar con
+  `python -m pip install -r $IDF_PATH/tools/requirements/requirements.core.txt -c ~/.espressif/tools/espidf.constraints.v6.1.txt`.
 - El sandbox de Claude bloquea UDP desde Python: no sirve para probar NTP/DNS; usar `sntp` del sistema.
 - Compilar y grabar la cámara:
   `cd camera_node && idf.py -p /dev/cu.usbmodem101 build flash monitor`
-- **La IP de la Mac cambia por DHCP** (era .182, el 2026-11-13 pasó a .169): si la cámara queda
+- **La IP de la Mac cambia por DHCP** (.182 → .169 el 2026-11-13 → .189 el 2026-11-22): si la cámara queda
   `offline`, comparar `ipconfig getifaddr en0` con CONFIG_MG_MQTT_BROKER_URI. Pendiente decidir:
   reserva DHCP en el router o mDNS (`<mac>.local` con espressif/mdns).
 - El scratchpad de Claude se borra entre sesiones: `readlog.py` (lector serie con reset) hay que recrearlo.
@@ -140,5 +143,13 @@ El Contrato .docx de referencia usa nombres en español: equivalencia en `contra
       publicador, ack `rejected` (el ingestor ahora escucha `cmd/ack`), publicador cierra. Tabla
       `stream_sessions`. Página `/live?token=&node=cam-01`. 60 tests (WS con uvicorn real en el
       loop del test). Probado en Docker con nodo sintético: 50/50 cuadros a 9,6 fps.
-- [ ] C8 vista en vivo · C9 extras.
+- [x] **C8** — `main/processes/stream_task` (núcleo 1, prio 5) con `espressif/esp_websocket_client`
+      1.8: start_stream → WS de publicación (token del nodo; `mg_api_ws_url` resuelve la ruta
+      relativa contra MG_API_BASE_URL), cuadros a fps_max hasta stop_stream / ttl / cierre de la API;
+      límites de la config local además de los de la API. Ack `done` al salir el primer cuadro,
+      `rejected` + `stream_connect_failed`. Candado de cámara (`capture_task_camera_lock`): un
+      capture_now en pleno stream sale en UXGA y el stream retoma; el timer se difiere y sale al
+      terminar. Medido en la placa: primer cuadro 163–209 ms; QVGA 10,0 fps (~6 KB), VGA 10,0 fps
+      (13 KB), 0 descartes.
+- [ ] C9 extras.
       Backend: B6 contrato exportado. Luego nodo de pantalla D0–D6.

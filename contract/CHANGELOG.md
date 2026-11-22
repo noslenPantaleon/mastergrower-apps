@@ -1,5 +1,12 @@
 # Changelog del contrato
 
+## [contrato B / schema_version 1] — 2026-11-22 (C8)
+- Nodo de cámara: `start_stream` responde `accepted` y, cuando envió el primer cuadro, `done`;
+  si no pudo abrir el WebSocket, `rejected` con `reason: "stream_connect_failed"` (o
+  `camera_error`). Si ya transmite esa sesión: `done` + `already_streaming`.
+- `stop_stream` responde `done`; si no había esa sesión, `done` + `not_streaming`.
+- Un `start_stream` de otra sesión reemplaza a la que esté transmitiendo.
+
 ## [contrato B / schema_version 1] — 2026-11-22 (B5)
 - HTTP: `POST/GET /stream/sessions`, `GET/DELETE /stream/sessions/{id}`; WebSocket
   `/stream/{id}/publish` (token del nodo) y `/stream/{id}/view` (token de la sesión)

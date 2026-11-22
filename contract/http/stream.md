@@ -130,8 +130,11 @@ La cámara además aplica `ttl_s` por su cuenta.
 
 - `start_stream`, `cmd_id: "st-{session_id}"`,
   `params: {session_id, ws_publish_url, resolution, fps_max, ttl_s}`. El nodo responde
-  `accepted`/`done` o `rejected` con `reason`.
-- `stop_stream`, `cmd_id: "sp-{session_id}"`, `params: {session_id}`.
+  `accepted` y, al enviar el primer cuadro, `done`; o `rejected` con `stream_connect_failed`,
+  `camera_error` o `invalid_format`. El nodo vuelve a recortar `resolution`, `fps_max` y `ttl_s` a
+  su propia config. Un `start_stream` de otra sesión reemplaza a la actual.
+- `stop_stream`, `cmd_id: "sp-{session_id}"`, `params: {session_id}` → `done` (con
+  `not_streaming` si no transmitía esa sesión).
 
 Mientras transmite, el nodo difiere los disparos por timer. Un `capture_now` pausa el stream, toma
 la captura en resolución completa y lo retoma.

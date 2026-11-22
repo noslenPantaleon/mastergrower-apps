@@ -8,6 +8,7 @@ set(srcs
     "processes/analysis_task.c"
     "processes/upload_task.c"
     "processes/config_sync_task.c"
+    "processes/stream_task.c"
 )
 if(CONFIG_MG_DEBUG_HTTP)
     list(APPEND srcs "debug/debug_http.c")

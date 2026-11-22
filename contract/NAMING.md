@@ -47,7 +47,7 @@ rutas y tablas. Los comentarios, los logs y la documentación siguen en español
 | estado del evento | `abierto`, `reconocido`, `resuelto` | `open`, `acknowledged`, `resolved` |
 | modo de cultivo (zona) | `sustrato`, `coco_goteo`, `hidroponia_dwc` | `substrate`, `coco_coir`, `dwc` |
 | estado del stream | `solicitada`, `activa`, `finalizada`, `error` | `requested`, `active`, `ended`, `error` |
-| motivo de rechazo (ack) | — | `unsupported_schema_version`, `invalid_format`, `expired`, `unsupported_action`, `outside_light_window`, `min_interval`, `queue_full`, `camera_error`, `out_of_memory`, `config_unavailable` (refresh_config sin respuesta de la API) |
+| motivo de rechazo (ack) | — | `unsupported_schema_version`, `invalid_format`, `expired`, `unsupported_action`, `outside_light_window`, `min_interval`, `queue_full`, `camera_error`, `out_of_memory`, `config_unavailable` (refresh_config sin respuesta de la API), `stream_connect_failed` (start_stream: no se pudo abrir el WebSocket); con `done`: `already_current`, `already_streaming`, `not_streaming` |
 
 ## Rutas HTTP y tablas
 

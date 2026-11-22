@@ -6,8 +6,10 @@
  */
 #pragma once
 
+#include <stdbool.h>
 #include <stdint.h>
 #include "esp_err.h"
+#include "freertos/FreeRTOS.h"
 
 esp_err_t capture_task_start(void);
 
@@ -16,3 +18,12 @@ esp_err_t capture_task_start(void);
  *        capture_task antes de capturar, así el sensor nunca se toca desde otra tarea.
  */
 void capture_task_set_quality(uint8_t jpeg_quality);
+
+/**
+ * @brief Candado de la cámara para secuencias "cambiar resolución + capturar" (C8): lo toman
+ *        capture_task y stream_task, así un capture_now durante el stream sale en resolución
+ *        completa y el stream después vuelve a la suya.
+ * @return true si se obtuvo antes de `timeout`.
+ */
+bool capture_task_camera_lock(TickType_t timeout);
+void capture_task_camera_unlock(void);
