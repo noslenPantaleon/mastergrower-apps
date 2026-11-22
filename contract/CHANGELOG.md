@@ -1,5 +1,16 @@
 # Changelog del contrato
 
+## [contrato B / schema_version 1] — 2026-11-22 (B5)
+- HTTP: `POST/GET /stream/sessions`, `GET/DELETE /stream/sessions/{id}`; WebSocket
+  `/stream/{id}/publish` (token del nodo) y `/stream/{id}/view` (token de la sesión)
+  ([`http/stream.md`](http/stream.md)). Códigos de cierre 4401/4403/4409/4410.
+- Estados `requested`, `active`, `ended`, `error` y `end_reason`. Tabla `stream_sessions`.
+- Una sesión por cámara: un segundo pedido se suma a la existente (`200`). Los parámetros
+  pedidos se recortan a `stream_resolution_max`, `stream_fps_max` y `stream_ttl_max_s` del nodo.
+- `start_stream.params.ws_publish_url` puede ser una ruta relativa; `stop_stream` lleva
+  `params.session_id`. Un `cmd/ack` `rejected` de `start_stream` termina la sesión con `error`.
+- Códigos de error nuevos: `node_offline`, `stream_limit` (409) y `unavailable` (503).
+
 ## [contrato B / schema_version 1] — 2026-11-22 (B4)
 - HTTP: `POST /nodes` (alta con emisión de token), `POST/DELETE /nodes/{id}/token` (rotar y
   revocar), `PUT /nodes/{id}/zone` ([`http/nodes.md`](http/nodes.md)); `GET/POST /zones`,

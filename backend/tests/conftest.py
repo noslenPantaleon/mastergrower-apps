@@ -1,10 +1,12 @@
 """Fixtures: API con SQLite en memoria y almacén de imágenes en una carpeta temporal."""
 
+import asyncio
 import io
 import json
 from collections.abc import AsyncIterator
 
 import pytest
+import uvicorn
 from httpx import ASGITransport, AsyncClient
 from PIL import Image
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
@@ -50,8 +52,17 @@ async def db(maker) -> AsyncIterator[AsyncSession]:
         yield s
 
 
-@pytest.fixture
-async def client(settings, maker) -> AsyncIterator[AsyncClient]:
+class FakeCmds(list):
+    """Reemplaza al broker: guarda los comandos que la API mandaría a los nodos."""
+
+    ok = True
+
+    async def __call__(self, node_id, action, cmd_id, params) -> bool:
+        self.append({"node_id": node_id, "action": action, "cmd_id": cmd_id, "params": params})
+        return self.ok
+
+
+async def build_app(settings, maker):
     async def _session() -> AsyncIterator[AsyncSession]:
         async with maker() as s:
             yield s
@@ -64,8 +75,38 @@ async def client(settings, maker) -> AsyncIterator[AsyncClient]:
     app.dependency_overrides[get_settings] = lambda: settings
     app.dependency_overrides[get_session] = _session
     app.dependency_overrides[get_image_store] = lambda: store
+    hub = app.state.hub
+    hub.s = settings
+    hub.sessionmaker = lambda: maker
+    hub.send_cmd = FakeCmds()
+    return app
+
+
+@pytest.fixture
+async def app(settings, maker):
+    return await build_app(settings, maker)
+
+
+@pytest.fixture
+async def client(app) -> AsyncIterator[AsyncClient]:
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
         yield c
+
+
+@pytest.fixture
+async def server(app) -> AsyncIterator[str]:
+    """La misma app servida por uvicorn de verdad (para WebSocket), en el loop del test."""
+    config = uvicorn.Config(app, host="127.0.0.1", port=0, lifespan="off", log_level="warning",
+                            ws="websockets-sansio")
+    srv = uvicorn.Server(config)
+    task = asyncio.create_task(srv.serve())
+    while not srv.started:
+        await asyncio.sleep(0.01)
+    port = srv.servers[0].sockets[0].getsockname()[1]
+    yield f"127.0.0.1:{port}"
+    await app.state.hub.stop()
+    srv.should_exit = True
+    await task
 
 
 def jpeg(w: int = 800, h: int = 600) -> bytes:

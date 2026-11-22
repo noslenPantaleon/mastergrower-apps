@@ -34,6 +34,8 @@ curl http://localhost:8000/api/v1/health
   `GET /api/v1/nodes`, `GET /api/v1/events`, `PATCH /api/v1/events/{id}` (ver `contract/http/`).
 - Alta de nodos y zonas: `POST /api/v1/nodes` entrega el token del nodo (una sola vez),
   `POST /api/v1/zones`, `PUT /api/v1/nodes/{id}/zone` (ver `contract/http/nodes.md` y `zones.md`).
+- Vista en vivo: `http://localhost:8000/live?token=<token de usuario>&node=cam-01` (pide la sesión
+  y muestra los cuadros; ver `contract/http/stream.md`).
 - Configuración remota de los nodos (override → zona → global → default): `GET/PUT /api/v1/config/global`,
   `GET/PUT/DELETE /api/v1/config/nodes/{id}/override` (ver `contract/http/config.md`).
 - Capturas subidas por los nodos: `http://localhost:8000/gallery?token=<token de usuario>`

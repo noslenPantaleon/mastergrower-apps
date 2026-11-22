@@ -16,6 +16,7 @@ _CODES = {
     413: "payload_too_large",
     415: "unsupported_media_type",
     422: "invalid_data",
+    503: "unavailable",
 }
 
 

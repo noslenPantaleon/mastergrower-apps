@@ -13,7 +13,8 @@ from app.core.db import dispose_engine, get_sessionmaker
 from app.core.errors import install_handlers
 from app.mqtt.ingestor import MqttIngestor
 from app.services.nodes import import_env_tokens
-from app.web import gallery
+from app.stream.hub import StreamHub
+from app.web import gallery, live
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
 log = logging.getLogger("mastergrow")
@@ -30,9 +31,20 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
             log.error("No se pudieron importar API_NODE_TOKENS: %s", e)
     ingestor = MqttIngestor(s) if s.mqtt_ingest_enabled else None
     app.state.ingestor = ingestor
+    hub: StreamHub = app.state.hub
+    hub.sessionmaker = get_sessionmaker
+    try:
+        if n := await hub.close_stale():
+            log.info("Sesiones de stream que quedaron abiertas: %d (cerradas)", n)
+    except Exception as e:
+        log.error("No se pudieron cerrar las sesiones viejas: %s", e)
     if ingestor:
+        hub.send_cmd = ingestor.send_command
+        ingestor.on_ack = hub.handle_ack
         ingestor.start()
+    hub.start()
     yield
+    await hub.stop()
     if ingestor:
         await ingestor.stop()
     await dispose_engine()
@@ -46,9 +58,11 @@ def create_app() -> FastAPI:
         description="API del sistema de cultivo indoor (ver contract/ en el repositorio).",
         lifespan=lifespan,
     )
+    app.state.hub = StreamHub(settings)  # vista en vivo (B5); se completa en el lifespan
     install_handlers(app)
     app.include_router(api_router, prefix=settings.api_prefix)
     app.include_router(gallery.router)
+    app.include_router(live.router)
     return app
 
 

@@ -40,6 +40,16 @@ class Settings(BaseSettings):
     max_image_bytes: int = 4 * 1024 * 1024
     thumb_max_px: tuple[int, int] = (320, 240)
 
+    # Vista en vivo (B5, Contrato §5.6). Un solo proceso: el reparto de cuadros vive en memoria.
+    # URL de la API vista desde los nodos (p. ej. http://192.168.1.169:8000).
+    # Vacía = ws_publish_url relativa, que el nodo resuelve contra su propia URL de la API.
+    api_public_url: str = ""
+    stream_max_sessions: int = 2      # sesiones simultáneas (todas las cámaras)
+    stream_max_viewers: int = 4       # espectadores por sesión
+    stream_idle_s: int = 30           # sin espectadores durante este tiempo → se cierra
+    stream_start_timeout_s: int = 15  # el nodo no abrió el WebSocket de publicación → error
+    stream_max_frame_bytes: int = 256 * 1024
+
     @property
     def node_tokens(self) -> dict[str, str]:
         return parse_pairs(self.api_node_tokens)

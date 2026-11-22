@@ -131,5 +131,14 @@ El Contrato .docx de referencia usa nombres en español: equivalencia en `contra
       `refresh_config`. `API_NODE_TOKENS` se importa a la base al arrancar (si nunca se vio y el
       nodo no tiene otro vigente). Tokens de usuario siguen en `.env`. 48 tests. Probado contra
       Postgres: `cam-01` en `zone-a` (06:00–00:00, igual que el default), config v7.
+- [x] **B5** — vista en vivo en la API (`app/stream/hub.py`, en memoria, un solo worker):
+      `POST/GET /stream/sessions`, `GET/DELETE /stream/sessions/{id}`, WS `/stream/{id}/publish`
+      (token del NODO, sesión de ese nodo) y `/stream/{id}/view` (token de la sesión, `?token=`).
+      Una sesión por cámara (otro pedido se suma: 200); parámetros recortados a la config del nodo;
+      `start_stream` cmd_id `st-{sid}` con `ws_publish_url` RELATIVA salvo `API_PUBLIC_URL`;
+      espectador lento → solo el último cuadro. Fin: DELETE, ttl, 30 s sin espectadores, 15 s sin
+      publicador, ack `rejected` (el ingestor ahora escucha `cmd/ack`), publicador cierra. Tabla
+      `stream_sessions`. Página `/live?token=&node=cam-01`. 60 tests (WS con uvicorn real en el
+      loop del test). Probado en Docker con nodo sintético: 50/50 cuadros a 9,6 fps.
 - [ ] C8 vista en vivo · C9 extras.
-      Backend: B5 stream · B6 contrato exportado. Luego nodo de pantalla D0–D6.
+      Backend: B6 contrato exportado. Luego nodo de pantalla D0–D6.

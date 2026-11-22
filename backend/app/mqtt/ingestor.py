@@ -10,6 +10,7 @@ import asyncio
 import json
 import logging
 import random
+from collections.abc import Awaitable, Callable
 from datetime import UTC, datetime
 
 import aiomqtt
@@ -20,7 +21,9 @@ from app.services.ingest import handle_message
 
 log = logging.getLogger(__name__)
 
-TOPICS = ["growlab/+/+/status", "growlab/+/+/state", "growlab/+/+/event"]
+TOPICS = ["growlab/+/+/status", "growlab/+/+/state", "growlab/+/+/event", "growlab/+/+/cmd/ack"]
+
+AckHandler = Callable[[str, dict], Awaitable[None]]
 
 
 class MqttIngestor:
@@ -31,6 +34,7 @@ class MqttIngestor:
         self.messages = 0
         self._task: asyncio.Task | None = None
         self._client: aiomqtt.Client | None = None
+        self.on_ack: AckHandler | None = None  # acuses de comandos (B5: start_stream)
 
     def start(self) -> None:
         self._task = asyncio.create_task(self._run(), name="mqtt-ingestor")
@@ -74,12 +78,31 @@ class MqttIngestor:
         self.last_message_at = datetime.now(UTC)
         p = msg.payload
         payload = bytes(p) if isinstance(p, bytes | bytearray) else str(p).encode()
+        topic = msg.topic.value
+        if topic.endswith("/cmd/ack"):
+            await self._handle_ack(topic, payload)
+            return
         try:
             async with get_sessionmaker()() as db:
                 await handle_message(db, msg.topic.value, payload, retained=bool(msg.retain))
         except Exception:
             # Un mensaje que rompe algo (p. ej. base caída) no debe matar al ingestor
             log.exception("Ingestor MQTT: error procesando %s", msg.topic.value)
+
+    async def _handle_ack(self, topic: str, payload: bytes) -> None:
+        if self.on_ack is None:
+            return
+        try:
+            ack = json.loads(payload)
+            if isinstance(ack, dict):
+                await self.on_ack(topic.split("/")[2], ack)
+        except Exception:
+            log.exception("Ingestor MQTT: error procesando el ack de %s", topic)
+
+    async def send_command(self, node_id: str, action: str, cmd_id: str, params: dict) -> bool:
+        kind = node_id.split("-", 1)[0]
+        return await self.publish(f"growlab/{kind}/{node_id}/cmd",
+                                  command(node_id, action, cmd_id, params))
 
     async def publish(self, topic: str, message: dict, qos: int = 1) -> bool:
         """Publica con el mismo cliente. Mejor esfuerzo: False si no hay conexión."""

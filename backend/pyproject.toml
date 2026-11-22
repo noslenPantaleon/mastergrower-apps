@@ -38,5 +38,5 @@ select = ["E", "F", "I", "UP", "B", "ASYNC"]
 
 [tool.ruff.lint.per-file-ignores]
 "migrations/versions/*" = ["E501"]   # generadas por Alembic
-"tests/*" = ["ASYNC240"]             # en tests, leer un archivo local bloqueando está bien
-"app/web/gallery.py" = ["E501"]      # HTML/JS embebido
+"tests/*" = ["ASYNC240", "ASYNC110"]  # en tests: leer archivos locales y esperar con sleep está bien
+"app/web/*.py" = ["E501"]            # HTML/JS embebido
