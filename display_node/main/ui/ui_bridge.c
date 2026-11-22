@@ -45,7 +45,8 @@ static void drain(lv_timer_t *t)
     while (xQueueReceive(s_q, &m, 0) == pdTRUE) {
         dirty |= m.change == SS_CHANGE_NODE ? UI_DIRTY_NODES
                : m.change == SS_CHANGE_EVENT ? UI_DIRTY_EVENTS
-               : m.change == SS_CHANGE_CONN ? UI_DIRTY_CONN : UI_DIRTY_CMD;
+               : m.change == SS_CHANGE_CONN ? UI_DIRTY_CONN
+               : m.change == SS_CHANGE_THUMB ? UI_DIRTY_THUMB : UI_DIRTY_CMD;
     }
     if (s_overflow) {
         s_overflow = false;

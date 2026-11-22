@@ -11,6 +11,7 @@
 #include "theme.h"
 #include "ui_api.h"
 #include "ui_common.h"
+#include "ui_thumbs.h"
 
 #define KPI_N  4
 #define KPI_W  ((SCR_W - (KPI_N + 1) * TH_GAP) / KPI_N)
@@ -21,7 +22,7 @@
 
 static struct {
     lv_obj_t *kpi_value[KPI_N], *kpi_sub[KPI_N];
-    lv_obj_t *cap_title, *cap_chip, *cap_when, *cap_thumb_icon;
+    lv_obj_t *cap_title, *cap_chip, *cap_when, *cap_thumb_icon, *cap_img;
 } s_h;
 
 static void kpi(lv_obj_t *parent, int i, const char *title, const char *unit)
@@ -87,6 +88,7 @@ void scr_home_create(lv_obj_t *p)
     lv_obj_set_style_text_font(s_h.cap_thumb_icon, &lv_font_montserrat_28, 0);
     lv_obj_set_style_text_color(s_h.cap_thumb_icon, th_color(TH_MUTED), 0);
     lv_obj_center(s_h.cap_thumb_icon);
+    s_h.cap_img = ui_thumb_image(thumb);
     lv_obj_t *row = lv_obj_create(cap);
     lv_obj_remove_style_all(row);
     lv_obj_set_size(row, LV_PCT(100), LV_SIZE_CONTENT);
@@ -119,7 +121,7 @@ static bool latest_camera(ss_node_t *out)
 
 void scr_home_refresh(uint32_t dirty)
 {
-    if (!(dirty & (UI_DIRTY_NODES | UI_DIRTY_TICK))) {
+    if (!(dirty & (UI_DIRTY_NODES | UI_DIRTY_TICK | UI_DIRTY_THUMB))) {
         return;
     }
     /* KPI: sin módulo de control todavía */
@@ -136,16 +138,26 @@ void scr_home_refresh(uint32_t dirty)
         return;
     }
     lv_label_set_text_fmt(s_h.cap_title, "Última captura · %s", cam.node_id);
+    if (dirty & (UI_DIRTY_THUMB | UI_DIRTY_NODES)) {
+        ui_thumb_bind(s_h.cap_img, cam.node_id);
+    }
+    thumb_info_t info;
+    bool have_thumb = ui_thumb(cam.node_id, &info) != NULL;
     const char *text;
     uint32_t bg, fg;
-    ui_node_chip(&cam, &text, &bg, &fg);
+    if (have_thumb) {
+        ui_analysis_chip(&info, &text, &bg, &fg);  // con foto: el resultado del análisis
+    } else {
+        ui_node_chip(&cam, &text, &bg, &fg);
+    }
     theme_chip_set(s_h.cap_chip, text, bg, fg);
-    if (cam.last_capture && state_store_conn().time_valid) {
+    time_t when = have_thumb && info.ts ? info.ts : cam.last_capture;
+    if (when && state_store_conn().time_valid) {
         char hhmm[8], age[32];
-        ui_hhmm(cam.last_capture, hhmm, sizeof(hhmm));
-        ui_age(time(NULL) - cam.last_capture, age, sizeof(age));
+        ui_hhmm(when, hhmm, sizeof(hhmm));
+        ui_age(time(NULL) - when, age, sizeof(age));
         lv_label_set_text_fmt(s_h.cap_when, "%s  ·  %s", hhmm, age);
     } else {
-        lv_label_set_text(s_h.cap_when, cam.last_capture ? "" : "todavía sin capturas");
+        lv_label_set_text(s_h.cap_when, when ? "" : "todavía sin capturas");
     }
 }

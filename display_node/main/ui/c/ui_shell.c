@@ -10,6 +10,7 @@
 #include "theme.h"
 #include "ui_api.h"
 #include "ui_common.h"
+#include "ui_thumbs.h"
 
 typedef enum {
     SCR_HOME, SCR_ENV, SCR_GROW, SCR_ACT, SCR_CAMS, SCR_EVENTS, SCR_CONFIG, SCR_COUNT
@@ -220,6 +221,9 @@ void ui_init(void)
 
 void ui_refresh(uint32_t dirty)
 {
+    if (dirty & UI_DIRTY_THUMB) {
+        ui_thumbs_sync();
+    }
     if (dirty & (UI_DIRTY_CONN | UI_DIRTY_NODES | UI_DIRTY_EVENTS | UI_DIRTY_TICK)) {
         topbar_refresh();
     }

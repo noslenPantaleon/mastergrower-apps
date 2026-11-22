@@ -2,6 +2,8 @@ dependencies:
   idf: ">=6.0"
   lvgl/lvgl: "~9.3.0"
   espressif/esp_lvgl_port: "^2.6.0"
+  # Miniaturas (D3): decodificación JPEG por software (tjpgd de la ROM)
+  espressif/esp_jpeg: "^1.3.0"
   # Componentes compartidos del monorepo (raíz/components)
   mg_wifi:
     path: ../../components/mg_wifi
@@ -11,3 +13,5 @@ dependencies:
     path: ../../components/mg_time
   mg_contract:
     path: ../../components/mg_contract
+  mg_api:
+    path: ../../components/mg_api

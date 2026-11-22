@@ -57,6 +57,7 @@ typedef enum {
     SS_CHANGE_EVENT,  /**< llegó un evento (node_id del emisor) */
     SS_CHANGE_CONN,   /**< cambió WiFi, MQTT o la hora */
     SS_CHANGE_CMD,    /**< cambió el estado de un comando enviado a node_id (command_publisher) */
+    SS_CHANGE_THUMB,  /**< hay miniatura nueva de node_id (thumb_service) */
 } ss_change_t;
 
 typedef void (*ss_listener_t)(ss_change_t change, const char *node_id);

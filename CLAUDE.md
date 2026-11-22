@@ -195,4 +195,13 @@ El Contrato .docx de referencia usa nombres en español: equivalencia en `contra
       cmd_id `disp-01-<n>-<azar>`, acks por `growlab/cam/+/cmd/ack`, timeout 5 s accepted / 20 s
       done; requiere hora válida. Probado en la placa: captura c-000211 `remote_command` UXGA.
       RAM interna libre 138 KB (cachés de glifos).
-- [ ] D3–D6 nodo de pantalla.
+- [x] **D3** — `services/thumb_service` (núcleo 0, prio 3, arranca ANTES que la red para ver el
+      status retenido): al cambiar `last_capture` espera 3 s, `GET /captures?node_id=&limit=1`
+      (+ `local_analysis`) y, si el id es nuevo, `GET /captures/{id}/thumb` (320×240) → `esp_jpeg`
+      RGB888 → RGB565 propio en PSRAM; reintenta 4× cada 15 s si la subida viene atrasada y revisa
+      todo cada 5 min. `ui/c/ui_thumbs`: un `lv_image_dsc_t` fijo por nodo, se cambia el búfer en
+      la tarea de LVGL (`lv_image_cache_drop`) y se libera el viejo. Tarjetas e Inicio con foto
+      (`LV_IMAGE_ALIGN_COVER`) y chip del análisis (Sin anomalías / Revisar planta / A oscuras /
+      Poca planta). Caché en la microSD de la pantalla pospuesta (CS por el CH422G; en LAN no hace
+      falta). Probado: primera miniatura 3,4 s después de conectar; se actualiza sola.
+- [ ] D4–D6 nodo de pantalla.

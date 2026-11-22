@@ -1,8 +1,8 @@
 /**
  * @file scr_cameras.c
- * @brief Cámaras (SRS de pantalla F-04): una tarjeta por nodo de cámara con estado, tipo, última
- *        captura y "Capturar ahora" (capture_now con cmd_id propio; espera el ack y avisa el
- *        resultado). La miniatura y el resultado del análisis llegan en D3 (API).
+ * @brief Cámaras (SRS de pantalla F-04): una tarjeta por nodo de cámara con miniatura de la última
+ *        captura (API), tipo, estado, resultado del análisis local y "Capturar ahora"
+ *        (capture_now con cmd_id propio; espera el ack y avisa el resultado).
  */
 #include <stdio.h>
 #include <string.h>
@@ -13,6 +13,7 @@
 #include "theme.h"
 #include "ui_api.h"
 #include "ui_common.h"
+#include "ui_thumbs.h"
 
 #define MAX_CARDS   8
 #define COLS        3
@@ -22,7 +23,7 @@
 
 typedef struct {
     char node_id[SS_ID_LEN];
-    lv_obj_t *card, *name, *type, *chip, *when, *btn;
+    lv_obj_t *card, *name, *type, *chip, *when, *btn, *img, *analysis;
 } cam_card_t;
 
 static struct {
@@ -64,6 +65,10 @@ static void card_create(cam_card_t *c, const char *node_id)
     lv_obj_set_style_text_font(icon, &lv_font_montserrat_28, 0);
     lv_obj_set_style_text_color(icon, th_color(TH_MUTED), 0);
     lv_obj_center(icon);
+    c->img = ui_thumb_image(thumb);
+    c->analysis = theme_chip(thumb);
+    lv_obj_align(c->analysis, LV_ALIGN_BOTTOM_LEFT, 6, -6);
+    lv_obj_add_flag(c->analysis, LV_OBJ_FLAG_HIDDEN);
 
     c->name = theme_label(c->card, TH_FONT_TITLE, TH_FG, node_id);
     c->type = theme_label(c->card, TH_FONT_SMALL, TH_MUTED, "");
@@ -163,6 +168,20 @@ static void card_refresh(cam_card_t *c, const ss_node_t *n)
     button_state(c, ui_node_online(n));
 }
 
+static void card_thumb(cam_card_t *c)
+{
+    ui_thumb_bind(c->img, c->node_id);
+    thumb_info_t info;
+    if (ui_thumb(c->node_id, &info)) {
+        const char *text;
+        uint32_t bg, fg;
+        ui_analysis_chip(&info, &text, &bg, &fg);
+        theme_chip_set(c->analysis, text, bg, fg);
+        lv_obj_remove_flag(c->analysis, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_move_foreground(c->analysis);
+    }
+}
+
 static void events_refresh(void)
 {
     for (int i = (int)lv_obj_get_child_count(s_c.events) - 1; i >= 1; i--) {
@@ -194,7 +213,7 @@ void scr_cameras_refresh(uint32_t dirty)
     if (dirty & UI_DIRTY_EVENTS) {
         events_refresh();
     }
-    if (!(dirty & (UI_DIRTY_NODES | UI_DIRTY_CMD | UI_DIRTY_TICK | UI_DIRTY_CONN))) {
+    if (!(dirty & (UI_DIRTY_NODES | UI_DIRTY_CMD | UI_DIRTY_TICK | UI_DIRTY_CONN | UI_DIRTY_THUMB))) {
         return;
     }
     static ss_node_t nodes[SS_MAX_NODES];
@@ -209,12 +228,17 @@ void scr_cameras_refresh(uint32_t dirty)
                 c = &s_c.cards[k];
             }
         }
+        bool is_new = false;
         if (!c && s_c.n_cards < MAX_CARDS) {  // cámara nueva: tarjeta nueva (las cámaras no se quitan)
             c = &s_c.cards[s_c.n_cards++];
             card_create(c, nodes[i].node_id);
+            is_new = true;
         }
         if (c) {
             card_refresh(c, &nodes[i]);
+            if (is_new || (dirty & UI_DIRTY_THUMB)) {
+                card_thumb(c);
+            }
         }
     }
     lv_obj_set_flag(s_c.empty, LV_OBJ_FLAG_HIDDEN, s_c.n_cards > 0);

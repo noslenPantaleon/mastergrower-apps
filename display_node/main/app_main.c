@@ -26,6 +26,7 @@
 #include "system_config.h"
 #include "ui_bridge.h"
 #include "command_publisher.h"
+#include "thumb_service.h"
 #include "ui_api.h"
 
 static const char *TAG = "app";
@@ -126,6 +127,11 @@ void app_main(void)
     ESP_ERROR_CHECK(hal_lcd_backlight(true));
     log_memory("interfaz lista");
 
+    /* Antes que la red: así ve el primer status (retenido) de cada cámara */
+    esp_err_t err2 = thumb_service_start();
+    if (err2 != ESP_OK) {
+        ESP_LOGE(TAG, "Miniaturas no disponibles: %s", esp_err_to_name(err2));
+    }
     esp_err_t net = net_task_start();
     if (net != ESP_OK) {
         ESP_LOGE(TAG, "Red no iniciada (%s): la pantalla sigue sin datos", esp_err_to_name(net));
