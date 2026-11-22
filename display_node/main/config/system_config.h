@@ -19,3 +19,5 @@
 #define SYS_NET_TASK_PRIO  5
 #define SYS_THUMB_STACK    8192   /* esp_http_client + cJSON + decodificación JPEG */
 #define SYS_THUMB_PRIO     3      /* debajo de net_task */
+#define SYS_LIVE_STACK     8192   /* HTTP de la sesión + decodificación JPEG */
+#define SYS_LIVE_PRIO      3

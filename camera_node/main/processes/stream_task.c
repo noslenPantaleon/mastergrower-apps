@@ -178,7 +178,9 @@ static esp_err_t grab(hal_camera_res_t res, uint8_t **buf, size_t *cap, size_t *
     if (info.resolution != res) {
         err = hal_camera_set_resolution(res);
         if (err == ESP_OK) {
-            hal_camera_discard_frames(1);  // el primero puede venir en la resolución anterior
+            /* Con 2 framebuffers, el primero (o los dos) pueden venir en la resolución anterior:
+             * con 1 solo descarte salía un cuadro de 800×600 al empezar el stream */
+            hal_camera_discard_frames(2);
         }
     }
     hal_frame_t f;

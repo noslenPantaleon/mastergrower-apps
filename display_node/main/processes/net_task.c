@@ -144,9 +144,19 @@ static void on_event(void *arg, esp_event_base_t base, int32_t id, void *data)
 
 /* ---------------------------------------------------------------- tarea */
 
+static void log_heap(void)
+{
+    ESP_LOGI(TAG, "memoria: interna libre %u KB (mín %u, bloque %u) · PSRAM libre %u KB",
+             (unsigned)(heap_caps_get_free_size(MALLOC_CAP_INTERNAL) / 1024),
+             (unsigned)(heap_caps_get_minimum_free_size(MALLOC_CAP_INTERNAL) / 1024),
+             (unsigned)(heap_caps_get_largest_free_block(MALLOC_CAP_INTERNAL) / 1024),
+             (unsigned)(heap_caps_get_free_size(MALLOC_CAP_SPIRAM) / 1024));
+}
+
 static void net_task(void *arg)
 {
     TickType_t last_status = xTaskGetTickCount();
+    TickType_t last_heap = last_status;
     for (;;) {
         rx_msg_t r;
         if (xQueueReceive(s_net.rx, &r, pdMS_TO_TICKS(1000)) == pdTRUE) {
@@ -162,6 +172,10 @@ static void net_task(void *arg)
         }
         update_conn();  // la hora se vuelve válida sin evento de MQTT: se revisa cada segundo
         command_publisher_tick();
+        if (xTaskGetTickCount() - last_heap > pdMS_TO_TICKS(10000)) {
+            last_heap = xTaskGetTickCount();
+            log_heap();
+        }
     }
 }
 

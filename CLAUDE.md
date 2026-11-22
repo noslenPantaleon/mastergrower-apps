@@ -204,4 +204,20 @@ El Contrato .docx de referencia usa nombres en español: equivalencia en `contra
       (`LV_IMAGE_ALIGN_COVER`) y chip del análisis (Sin anomalías / Revisar planta / A oscuras /
       Poca planta). Caché en la microSD de la pantalla pospuesta (CS por el CH422G; en LAN no hace
       falta). Probado: primera miniatura 3,4 s después de conectar; se actualiza sola.
-- [ ] D4–D6 nodo de pantalla.
+- [x] **D5** — vista en vivo en la pantalla. `services/live_view` (núcleo 0, pila en PSRAM):
+      POST `/stream/sessions` → WS de espectador (`esp_websocket_client` fijado al núcleo 0, búfer
+      4 KB); cuadros armados por `payload_offset` en 3 búferes JPEG que se intercambian (nunca
+      NULL); `esp_jpeg` directo a RGB565 (sin swap = orden de LVGL) en 3 framebuffers VGA (en
+      pantalla / listo / decodificando; si la interfaz se atrasa se pisa el listo). Cierre SIN
+      `esp_websocket_client_close()` (se bloqueaba): DELETE en la API y después destroy.
+      `ui/c/scr_live`: video 480×360, guías (tercios/cruz/grilla), QVGA/VGA, 5/10/15 fps, captura
+      completa, volver; se abre con "▶ En vivo" en cada tarjeta. Medido: primer cuadro 0,3–0,9 s,
+      10 fps, 8 aperturas/cierres seguidos sin colgarse.
+      **Memoria (lección):** LVGL con `CLIB_MALLOC` agotaba la RAM interna (objetos + caché de
+      TinyTTF) → panic de lwIP. Ahora `CONFIG_LV_USE_CUSTOM_MALLOC` con `ui/lv_mem_psram.c`
+      (heap_caps SPIRAM; `-u` en el CMake para que el linker no lo descarte),
+      `SPIRAM_TRY_ALLOCATE_WIFI_LWIP`, tcpip en el núcleo 0, pilas de live/thumbs en PSRAM.
+      `net_task` registra la memoria cada 10 s (interna ~95 KB libre).
+      Cámara (C8): desde QVGA/VGA espera 200 ms y descarta 4 cuadros antes de capturar y verifica
+      el tamaño (salían UXGA verdosas con media imagen blanca); el stream descarta 2 al volver.
+- [ ] D4, D6 nodo de pantalla.

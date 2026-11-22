@@ -237,3 +237,41 @@ esp_err_t mg_api_get(const char *path, const char *if_none_match, size_t max_bod
     esp_http_client_cleanup(c);
     return err;
 }
+
+esp_err_t mg_api_request_json(const char *method, const char *path, const char *json, size_t max_body,
+                              mg_api_resp_t *resp)
+{
+    ESP_RETURN_ON_FALSE(method && path && resp, ESP_ERR_INVALID_ARG, TAG, "argumentos");
+    *resp = (mg_api_resp_t){ 0 };
+    esp_http_client_method_t m;
+    if (strcmp(method, "POST") == 0) {
+        m = HTTP_METHOD_POST;
+    } else if (strcmp(method, "PUT") == 0) {
+        m = HTTP_METHOD_PUT;
+    } else if (strcmp(method, "PATCH") == 0) {
+        m = HTTP_METHOD_PATCH;
+    } else if (strcmp(method, "DELETE") == 0) {
+        m = HTTP_METHOD_DELETE;
+    } else {
+        return ESP_ERR_INVALID_ARG;
+    }
+    esp_http_client_handle_t c = open_client(path, m);
+    ESP_RETURN_ON_FALSE(c, ESP_ERR_NO_MEM, TAG, "no se pudo crear el cliente");
+    size_t len = json ? strlen(json) : 0;
+    if (len) {
+        esp_http_client_set_header(c, "Content-Type", "application/json");
+    }
+    esp_err_t err = esp_http_client_open(c, (int)len);
+    if (err == ESP_OK && len) {
+        err = write_all(c, json, len);
+    }
+    if (err == ESP_OK && esp_http_client_fetch_headers(c) < 0) {
+        err = ESP_FAIL;
+    }
+    if (err == ESP_OK) {
+        read_body(c, max_body, resp);
+    }
+    esp_http_client_close(c);
+    esp_http_client_cleanup(c);
+    return err;
+}

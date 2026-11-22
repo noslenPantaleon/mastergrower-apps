@@ -20,5 +20,13 @@ void scr_cameras_refresh(uint32_t dirty);
 void scr_events_create(lv_obj_t *parent);
 void scr_events_refresh(uint32_t dirty);
 
+/** @brief Vista en vivo: se crea una vez; enter/leave abren y cierran la sesión. */
+void scr_live_create(lv_obj_t *parent, void (*on_back)(void));
+void scr_live_enter(const char *node_id);
+void scr_live_leave(void);
+
+/** @brief Abre la vista en vivo de una cámara (lo implementa ui_shell). */
+void ui_shell_open_live(const char *node_id);
+
 /** @brief Pantalla pendiente: título y explicación de qué falta. */
 void scr_placeholder_create(lv_obj_t *parent, const char *title, const char *why);

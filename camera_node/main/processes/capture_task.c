@@ -21,6 +21,8 @@ static const char *TAG = "capture_task";
 
 #define CAPTURE_RETRIES     2
 #define CAPTURE_TIMEOUT_MS  3000
+#define SIZE_RETRIES        3
+#define SETTLE_FROM_STREAM_MS 200
 
 static volatile uint8_t s_quality_wanted;  /**< 0 = sin pedido */
 static SemaphoreHandle_t s_cam_lock;
@@ -49,6 +51,24 @@ static esp_err_t capture_with_retry(hal_frame_t *f)
             return ESP_OK;
         }
         ESP_LOGW(TAG, "Intento %d fallido: %s", i + 1, esp_err_to_name(err));
+    }
+    return err;
+}
+
+/** Captura y verifica que el cuadro tenga el tamaño de la resolución pedida (si no, otro intento). */
+static esp_err_t capture_expected_size(hal_frame_t *f, hal_camera_res_t res)
+{
+    uint16_t w, h;
+    hal_camera_res_size(res, &w, &h);
+    esp_err_t err = ESP_FAIL;
+    for (int i = 0; i < SIZE_RETRIES; i++) {
+        err = capture_with_retry(f);
+        if (err != ESP_OK || (f->width == w && f->height == h)) {
+            return err;
+        }
+        ESP_LOGW(TAG, "Cuadro de %ux%u en vez de %ux%u: se descarta", f->width, f->height, w, h);
+        hal_camera_release(f);
+        err = ESP_ERR_INVALID_SIZE;
     }
     return err;
 }
@@ -116,12 +136,18 @@ static void capture_task(void *arg)
                 fail(&t, "resolution_change", err);
                 continue;
             }
-            /* Tras cambiar de resolución los primeros cuadros pueden venir de la anterior. */
-            hal_camera_discard_frames(2);
+            /* Tras cambiar de resolución los primeros cuadros pueden venir de la anterior o a
+             * medio reconfigurar. Desde las resoluciones del stream (QVGA/VGA) la OV3660 tarda
+             * más: sin la espera salían capturas UXGA verdosas y con media imagen en blanco (D5). */
+            bool from_stream = info.resolution <= HAL_CAM_RES_VGA;
+            if (from_stream) {
+                vTaskDelay(pdMS_TO_TICKS(SETTLE_FROM_STREAM_MS));
+            }
+            hal_camera_discard_frames(from_stream ? 4 : 2);
         }
 
         hal_frame_t frame;
-        esp_err_t err = capture_with_retry(&frame);
+        esp_err_t err = capture_expected_size(&frame, t.resolution);
         if (err != ESP_OK) {
             capture_task_camera_unlock();
             fail(&t, "camera_error", err);

@@ -13,7 +13,9 @@
 #include "ui_thumbs.h"
 
 typedef enum {
-    SCR_HOME, SCR_ENV, SCR_GROW, SCR_ACT, SCR_CAMS, SCR_EVENTS, SCR_CONFIG, SCR_COUNT
+    SCR_HOME, SCR_ENV, SCR_GROW, SCR_ACT, SCR_CAMS, SCR_EVENTS, SCR_CONFIG, SCR_COUNT,
+    SCR_LIVE = SCR_COUNT,  /**< no está en la barra: se abre desde una cámara */
+    SCR_ALL
 } screen_id_t;
 
 static const struct {
@@ -32,9 +34,11 @@ static const struct {
 static struct {
     lv_obj_t *title, *wifi_dot, *status, *alarms, *clock;
     lv_obj_t *content;
-    lv_obj_t *pages[SCR_COUNT];
+    lv_obj_t *pages[SCR_ALL];
     lv_obj_t *nav[SCR_COUNT];
     screen_id_t current;
+    screen_id_t before_live;
+    char live_node[16];
 } s_sh;
 
 /* ---------------------------------------------------------------- barra superior */
@@ -95,6 +99,8 @@ static void topbar_refresh(void)
 
 /* ---------------------------------------------------------------- navegación */
 
+static void live_back(void);
+
 static void page_create(screen_id_t id)
 {
     lv_obj_t *p = lv_obj_create(s_sh.content);
@@ -117,6 +123,9 @@ static void page_create(screen_id_t id)
         scr_placeholder_create(p, "Actuadores", "Relés del módulo de control (bomba, aire, luz, "
                                "ventilación): esperan al módulo de control.");
         break;
+    case SCR_LIVE:
+        scr_live_create(p, live_back);
+        break;
     case SCR_CONFIG:
         scr_placeholder_create(p, "Configuración", "Red, ciclo de luz, captura global, umbrales y alta "
                                "de nodos: llega en D4.");
@@ -137,18 +146,44 @@ static void refresh_current(uint32_t dirty)
 
 static void show(screen_id_t id)
 {
+    if (s_sh.current == SCR_LIVE && id != SCR_LIVE) {
+        scr_live_leave();  // salir de la vista en vivo cierra la sesión (SRS F-05)
+    }
     if (!s_sh.pages[id]) {
         page_create(id);
     }
-    for (int i = 0; i < SCR_COUNT; i++) {
+    for (int i = 0; i < SCR_ALL; i++) {
         if (s_sh.pages[i]) {
             lv_obj_set_flag(s_sh.pages[i], LV_OBJ_FLAG_HIDDEN, i != (int)id);
         }
-        lv_obj_set_state(s_sh.nav[i], LV_STATE_CHECKED, i == (int)id);
+        if (i < SCR_COUNT) {
+            /* En la vista en vivo queda marcada la pantalla desde la que se abrió */
+            screen_id_t marked = id == SCR_LIVE ? s_sh.before_live : id;
+            lv_obj_set_state(s_sh.nav[i], LV_STATE_CHECKED, i == (int)marked);
+        }
     }
     s_sh.current = id;
-    lv_label_set_text(s_sh.title, SCREENS[id].title ? SCREENS[id].title : "MasterGrow");
+    if (id == SCR_LIVE) {
+        lv_label_set_text_fmt(s_sh.title, "En vivo · %s", s_sh.live_node);
+    } else {
+        lv_label_set_text(s_sh.title, SCREENS[id].title ? SCREENS[id].title : "MasterGrow");
+    }
     refresh_current(UI_DIRTY_ALL);
+}
+
+static void live_back(void)
+{
+    show(s_sh.before_live);
+}
+
+void ui_shell_open_live(const char *node_id)
+{
+    if (s_sh.current != SCR_LIVE) {
+        s_sh.before_live = s_sh.current;
+    }
+    strlcpy(s_sh.live_node, node_id, sizeof(s_sh.live_node));
+    show(SCR_LIVE);
+    scr_live_enter(node_id);
 }
 
 static void on_nav(lv_event_t *e)

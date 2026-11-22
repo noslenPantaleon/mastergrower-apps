@@ -26,6 +26,7 @@
 #include "system_config.h"
 #include "ui_bridge.h"
 #include "command_publisher.h"
+#include "live_view.h"
 #include "thumb_service.h"
 #include "ui_api.h"
 
@@ -127,8 +128,12 @@ void app_main(void)
     ESP_ERROR_CHECK(hal_lcd_backlight(true));
     log_memory("interfaz lista");
 
+    esp_err_t err2 = live_view_init();
+    if (err2 != ESP_OK) {
+        ESP_LOGE(TAG, "Vista en vivo no disponible: %s", esp_err_to_name(err2));
+    }
     /* Antes que la red: así ve el primer status (retenido) de cada cámara */
-    esp_err_t err2 = thumb_service_start();
+    err2 = thumb_service_start();
     if (err2 != ESP_OK) {
         ESP_LOGE(TAG, "Miniaturas no disponibles: %s", esp_err_to_name(err2));
     }

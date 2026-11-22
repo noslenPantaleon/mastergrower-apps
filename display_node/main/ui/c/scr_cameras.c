@@ -23,7 +23,7 @@
 
 typedef struct {
     char node_id[SS_ID_LEN];
-    lv_obj_t *card, *name, *type, *chip, *when, *btn, *img, *analysis;
+    lv_obj_t *card, *name, *type, *chip, *when, *btn, *img, *analysis, *live;
 } cam_card_t;
 
 static struct {
@@ -33,6 +33,12 @@ static struct {
 } s_c;
 
 /* ---------------------------------------------------------------- acciones */
+
+static void on_live(lv_event_t *e)
+{
+    cam_card_t *c = lv_event_get_user_data(e);
+    ui_shell_open_live(c->node_id);
+}
 
 static void on_capture(lv_event_t *e)
 {
@@ -69,6 +75,18 @@ static void card_create(cam_card_t *c, const char *node_id)
     c->analysis = theme_chip(thumb);
     lv_obj_align(c->analysis, LV_ALIGN_BOTTOM_LEFT, 6, -6);
     lv_obj_add_flag(c->analysis, LV_OBJ_FLAG_HIDDEN);
+    c->live = lv_button_create(thumb);
+    lv_obj_set_size(c->live, LV_SIZE_CONTENT, 32);
+    lv_obj_set_style_pad_hor(c->live, 10, 0);
+    lv_obj_set_style_radius(c->live, 16, 0);
+    lv_obj_set_style_shadow_width(c->live, 0, 0);
+    lv_obj_set_style_bg_color(c->live, lv_color_black(), 0);
+    lv_obj_set_style_bg_opa(c->live, LV_OPA_60, 0);
+    lv_obj_set_style_bg_opa(c->live, LV_OPA_30, LV_STATE_DISABLED);
+    lv_obj_align(c->live, LV_ALIGN_TOP_RIGHT, -6, 6);
+    lv_obj_t *ll = theme_label(c->live, TH_FONT_SMALL, TH_FG, LV_SYMBOL_PLAY " En vivo");
+    lv_obj_center(ll);
+    lv_obj_add_event_cb(c->live, on_live, LV_EVENT_CLICKED, c);
 
     c->name = theme_label(c->card, TH_FONT_TITLE, TH_FG, node_id);
     c->type = theme_label(c->card, TH_FONT_SMALL, TH_MUTED, "");
@@ -166,6 +184,7 @@ static void card_refresh(cam_card_t *c, const ss_node_t *n)
         lv_label_set_text(c->when, "sin capturas");
     }
     button_state(c, ui_node_online(n));
+    lv_obj_set_state(c->live, LV_STATE_DISABLED, !ui_node_online(n));
 }
 
 static void card_thumb(cam_card_t *c)
@@ -180,6 +199,7 @@ static void card_thumb(cam_card_t *c)
         lv_obj_remove_flag(c->analysis, LV_OBJ_FLAG_HIDDEN);
         lv_obj_move_foreground(c->analysis);
     }
+    lv_obj_move_foreground(c->live);
 }
 
 static void events_refresh(void)

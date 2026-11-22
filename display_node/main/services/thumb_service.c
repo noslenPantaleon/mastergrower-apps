@@ -13,6 +13,7 @@
 #include "freertos/queue.h"
 #include "freertos/semphr.h"
 #include "freertos/task.h"
+#include "freertos/idf_additions.h"
 #include "jpeg_decoder.h"
 #include "mg_api.h"
 #include "mg_time.h"
@@ -254,8 +255,9 @@ esp_err_t thumb_service_start(void)
         return ESP_ERR_NO_MEM;
     }
     state_store_subscribe(on_change);
-    BaseType_t ok = xTaskCreatePinnedToCore(thumb_task, "thumbs", SYS_THUMB_STACK, NULL, SYS_THUMB_PRIO,
-                                            NULL, SYS_CORE_NET);
+    /* Pila en PSRAM: la RAM interna es escasa y esta tarea no escribe la flash */
+    BaseType_t ok = xTaskCreatePinnedToCoreWithCaps(thumb_task, "thumbs", SYS_THUMB_STACK, NULL,
+                                                    SYS_THUMB_PRIO, NULL, SYS_CORE_NET, MALLOC_CAP_SPIRAM);
     return ok == pdPASS ? ESP_OK : ESP_ERR_NO_MEM;
 }
 

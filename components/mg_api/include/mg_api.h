@@ -48,6 +48,13 @@ esp_err_t mg_api_post_multipart(const char *path, const mg_api_part_t *parts, si
  */
 esp_err_t mg_api_get(const char *path, const char *if_none_match, size_t max_body, mg_api_resp_t *resp);
 
+/**
+ * @brief POST, PUT, PATCH o DELETE a <base><path> con cuerpo JSON opcional (json NULL = sin
+ *        cuerpo). Mismas reglas de retorno que mg_api_get.
+ */
+esp_err_t mg_api_request_json(const char *method, const char *path, const char *json, size_t max_body,
+                              mg_api_resp_t *resp);
+
 void mg_api_resp_free(mg_api_resp_t *resp);
 
 /** @brief URL base configurada (para logs). */
