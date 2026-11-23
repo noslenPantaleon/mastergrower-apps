@@ -4,18 +4,12 @@
  */
 #include "hal_camera_dvp.h"
 
-static void ov3660_tune(sensor_t *s)
-{
-    /* Ajuste de partida tomado del ejemplo CameraWebServer de Espressif: la OV3660 sale
-     * oscura y sobresaturada con los valores de fábrica. Se recalibra con imágenes reales. */
-    s->set_brightness(s, 1);
-    s->set_saturation(s, -2);
-}
-
+/* Brillo/contraste/saturación: los aplica hal_camera_init con HAL_CAMERA_TUNING_DEFAULT()
+ * (Kconfig). El ejemplo de Espressif usaba saturación -2: las hojas salían casi grises. */
 static const hal_dvp_sensor_desc_t k_ov3660 = {
     .expected_pid = OV3660_PID,
     .max_framesize = FRAMESIZE_QXGA,
-    .tune = ov3660_tune,
+    .tune = NULL,
 };
 
 static esp_err_t ov3660_init(const hal_camera_config_t *cfg)
@@ -33,5 +27,6 @@ const hal_camera_driver_t hal_camera_driver = {
     .set_resolution = hal_dvp_set_resolution,
     .set_quality = hal_dvp_set_quality,
     .set_orientation = hal_dvp_set_orientation,
+    .set_tuning = hal_dvp_set_tuning,
     .sensor_name = hal_dvp_sensor_name,
 };

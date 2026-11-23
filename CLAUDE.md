@@ -263,6 +263,19 @@ El Contrato .docx de referencia usa nombres en español: equivalencia en `contra
       24 h (1 punto/min, PSRAM); Inicio con KPI y tendencia reales; Ambiente (gráfico + valores),
       Cultivo (variables según modo) y Actuadores (solo lectura: falta `set_actuator`).
       Guía para el video: `docs/guia-de-uso.md` (+ `backend/scripts/open_web.sh`).
+- [x] **Aprovisionamiento** — `components/mg_settings` (NVS `mg_net`: WiFi, servidor, clave MQTT,
+      token; sin datos guardados usa los de Kconfig) y `mg_api_configure()`; el servidor es un host
+      (IP o `nombre.local` por mDNS) y de ahí salen `mqtt://host:1883` y `http://host:8000/api/v1`.
+      Pantalla: Config → "Red y servidor…" (teclado en pantalla, escaneo WiFi, guarda y reinicia).
+      Cámara: `components/mg_portal` = portal cautivo (AP `MasterGrow-<node>-XXXX`, clave
+      `mg` + 3 bytes de la MAC del AP, DNS que responde todo a 192.168.4.1, prueba WiFi + puertos
+      antes de guardar). Entra sin credenciales, con BOOT 5 s (no al encender: GPIO0 bajo = modo
+      descarga) o tras 300 s sin WiFi. Pantalla probada; portal de la cámara aún sin probar.
+- [x] **Análisis de color calibrado (cámara 0.2.7)** — `hsv.c` aplica auto-niveles por canal
+      (percentiles 2–98) antes de clasificar: a contraluz el negro quedaba en ~73/255 y las hojas en
+      ~7 % de saturación (verde 0,4 % → 18 %). S mín. 40, verde 65–175°. Sensor: brillo/contraste/
+      saturación por Kconfig (+1/+1/+2) y en vivo con `/control?saturation=N`. La mesa y la maceta
+      suman amarillo/marrón (~22 %): falta región de interés y un set de imágenes propias.
 - [ ] D6 restante: variante LVGL Pro (rama `lvgl-pro`: LVGL 9.5 + proyecto del editor en
       `display_node/main/ui/lvglpro`, falta exportar con el editor e integrar). Pendientes chicos: alta de nodos y zonas desde la pantalla
       (necesita teclado), PIN opcional, caché de miniaturas en la microSD.

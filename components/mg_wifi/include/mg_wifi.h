@@ -53,6 +53,20 @@ bool mg_wifi_is_connected(void);
 /** @brief RSSI del AP actual en dBm; 0 si no hay conexión. */
 int8_t mg_wifi_get_rssi(void);
 
+/** Red encontrada por mg_wifi_scan(). */
+typedef struct {
+    char ssid[33];
+    int8_t rssi;
+    bool secured;   /**< false = red abierta */
+} mg_wifi_ap_t;
+
+/**
+ * @brief Busca redes (bloquea ~2–3 s; no llamar desde la tarea de LVGL). Sin repetidos, de la más
+ *        fuerte a la más débil. Pausa los reintentos de conexión mientras busca.
+ * @return cantidad de redes (≤ max) o -1 si falló.
+ */
+int mg_wifi_scan(mg_wifi_ap_t *out, int max);
+
 /** @brief IP actual como texto ("0.0.0.0" si no hay conexión). */
 esp_err_t mg_wifi_get_ip_str(char *buf, size_t len);
 

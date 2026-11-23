@@ -15,3 +15,7 @@ dependencies:
     path: ../../components/mg_api
   mg_ota:
     path: ../../components/mg_ota
+  mg_settings:
+    path: ../../components/mg_settings
+  mg_portal:
+    path: ../../components/mg_portal

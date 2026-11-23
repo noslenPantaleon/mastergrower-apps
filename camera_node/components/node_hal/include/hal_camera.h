@@ -21,6 +21,7 @@
 #include <stddef.h>
 #include <stdint.h>
 #include "esp_err.h"
+#include "sdkconfig.h"
 #include "freertos/FreeRTOS.h"
 
 #ifdef __cplusplus
@@ -82,6 +83,20 @@ void hal_camera_release(hal_frame_t *frame);
 esp_err_t hal_camera_set_resolution(hal_camera_res_t res);
 esp_err_t hal_camera_set_quality(uint8_t jpeg_quality);
 esp_err_t hal_camera_set_orientation(bool vflip, bool hmirror);
+
+/** Ajuste de imagen del sensor, cada valor en -2..2 (0 = de fábrica). */
+typedef struct {
+    int8_t brightness;
+    int8_t contrast;
+    int8_t saturation;
+} hal_camera_tuning_t;
+
+#define HAL_CAMERA_TUNING_DEFAULT() { .brightness = CONFIG_MG_CAMERA_BRIGHTNESS, \
+    .contrast = CONFIG_MG_CAMERA_CONTRAST, .saturation = CONFIG_MG_CAMERA_SATURATION }
+
+/** @return ESP_ERR_INVALID_ARG fuera de rango, ESP_ERR_NOT_SUPPORTED si el driver no lo tiene. */
+esp_err_t hal_camera_set_tuning(const hal_camera_tuning_t *t);
+esp_err_t hal_camera_get_tuning(hal_camera_tuning_t *out);
 
 /**
  * @brief Descarta n cuadros. Útil tras el arranque o un cambio de resolución,

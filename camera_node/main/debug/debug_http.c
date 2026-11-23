@@ -143,6 +143,28 @@ static esp_err_t control_get(httpd_req_t *req)
     if (err == ESP_OK && (has_vf || has_hm)) {
         err = hal_camera_set_orientation(has_vf && atoi(vf), has_hm && atoi(hm));
     }
+    /* Ajuste de imagen en vivo (para calibrar el análisis de color); se pierde al reiniciar. */
+    hal_camera_tuning_t tun;
+    hal_camera_get_tuning(&tun);
+    bool tun_changed = false;
+    if (httpd_query_key_value(query, "brightness", val, sizeof(val)) == ESP_OK) {
+        tun.brightness = (int8_t)atoi(val);
+        tun_changed = true;
+    }
+    if (httpd_query_key_value(query, "contrast", val, sizeof(val)) == ESP_OK) {
+        tun.contrast = (int8_t)atoi(val);
+        tun_changed = true;
+    }
+    if (httpd_query_key_value(query, "saturation", val, sizeof(val)) == ESP_OK) {
+        tun.saturation = (int8_t)atoi(val);
+        tun_changed = true;
+    }
+    if (err == ESP_OK && tun_changed) {
+        err = hal_camera_set_tuning(&tun);
+        if (err == ESP_OK) {
+            hal_camera_discard_frames(2);
+        }
+    }
     if (err == ESP_OK && res_changed) {
         /* Los primeros cuadros tras cambiar de resolución pueden salir corruptos o mal expuestos. */
         hal_camera_discard_frames(2);

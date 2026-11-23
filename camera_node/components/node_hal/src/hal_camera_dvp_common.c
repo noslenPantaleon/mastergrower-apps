@@ -161,6 +161,18 @@ esp_err_t hal_dvp_set_orientation(bool vflip, bool hmirror)
     return ESP_OK;
 }
 
+esp_err_t hal_dvp_set_tuning(const hal_camera_tuning_t *t)
+{
+    sensor_t *s = esp_camera_sensor_get();
+    if (!s) {
+        return ESP_ERR_INVALID_STATE;
+    }
+    int r = s->set_brightness(s, t->brightness);
+    r |= s->set_contrast(s, t->contrast);
+    r |= s->set_saturation(s, t->saturation);
+    return r == 0 ? ESP_OK : ESP_FAIL;
+}
+
 const char *hal_dvp_sensor_name(void)
 {
     sensor_t *s = esp_camera_sensor_get();

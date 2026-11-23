@@ -18,6 +18,7 @@ typedef enum {
     SCR_HOME, SCR_ENV, SCR_GROW, SCR_ACT, SCR_CAMS, SCR_EVENTS, SCR_CONFIG, SCR_COUNT,
     SCR_LIVE = SCR_COUNT,  /**< no están en la barra: se abren desde una cámara */
     SCR_DETAIL,
+    SCR_NET,
     SCR_ALL
 } screen_id_t;
 
@@ -127,6 +128,9 @@ static void page_create(screen_id_t id)
     case SCR_DETAIL:
         scr_camera_create(p, live_back);
         break;
+    case SCR_NET:
+        scr_net_create(p, live_back);
+        break;
     case SCR_CONFIG:
         scr_config_create(p);
         break;
@@ -154,6 +158,9 @@ static void show(screen_id_t id)
     if (s_sh.current == SCR_LIVE && id != SCR_LIVE) {
         scr_live_leave();  // salir de la vista en vivo cierra la sesión (SRS F-05)
     }
+    if (s_sh.current == SCR_NET && id != SCR_NET) {
+        scr_net_leave();
+    }
     if (!s_sh.pages[id]) {
         page_create(id);
     }
@@ -172,6 +179,8 @@ static void show(screen_id_t id)
         lv_label_set_text_fmt(s_sh.title, "En vivo · %s", s_sh.live_node);
     } else if (id == SCR_DETAIL) {
         lv_label_set_text_fmt(s_sh.title, "Cámara · %s", s_sh.live_node);
+    } else if (id == SCR_NET) {
+        lv_label_set_text(s_sh.title, "Red y servidor");
     } else {
         lv_label_set_text(s_sh.title, SCREENS[id].title ? SCREENS[id].title : "MasterGrow");
     }
@@ -181,6 +190,15 @@ static void show(screen_id_t id)
 static void live_back(void)
 {
     show(s_sh.before_live);
+}
+
+void ui_shell_open_net(void)
+{
+    if (s_sh.current < SCR_COUNT) {
+        s_sh.before_live = s_sh.current;
+    }
+    show(SCR_NET);
+    scr_net_enter();
 }
 
 void ui_shell_open_camera(const char *node_id)

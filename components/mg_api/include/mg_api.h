@@ -57,6 +57,12 @@ esp_err_t mg_api_request_json(const char *method, const char *path, const char *
 
 void mg_api_resp_free(mg_api_resp_t *resp);
 
+/**
+ * @brief Cambia la URL base y el token en uso (p. ej. los guardados en NVS con mg_settings).
+ *        NULL o "" deja el valor actual. Llamar antes de usar la API (no es seguro en paralelo).
+ */
+esp_err_t mg_api_configure(const char *base_url, const char *token);
+
 /** @brief URL base configurada (para logs). */
 const char *mg_api_base_url(void);
 

@@ -323,6 +323,11 @@ static void on_fw_list(api_result_t *r, void *ctx)
     fw_render();
 }
 
+static void on_open_net(lv_event_t *e)
+{
+    ui_shell_open_net();
+}
+
 void scr_config_create(lv_obj_t *p)
 {
     int len = 0;
@@ -369,6 +374,9 @@ void scr_config_create(lv_obj_t *p)
     lv_label_set_long_mode(s_cf.sys, LV_LABEL_LONG_WRAP);
     lv_obj_set_style_text_line_space(s_cf.sys, 4, 0);
     lv_obj_add_flag(sys, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_t *net = theme_button_secondary(sys, "Red y servidor…");
+    lv_obj_set_width(net, LV_PCT(100));
+    lv_obj_add_event_cb(net, on_open_net, LV_EVENT_CLICKED, NULL);
     lv_obj_t *fwt = theme_label(sys, TH_FONT_SMALL, TH_MUTED, "FIRMWARE (OTA)");
     lv_obj_set_style_margin_top(fwt, 6, 0);
     s_cf.fw_list = lv_obj_create(sys);

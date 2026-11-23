@@ -22,6 +22,7 @@ typedef struct {
     esp_err_t (*set_resolution)(hal_camera_res_t res);
     esp_err_t (*set_quality)(uint8_t q);
     esp_err_t (*set_orientation)(bool vflip, bool hmirror);
+    esp_err_t (*set_tuning)(const hal_camera_tuning_t *t);  /**< puede ser NULL */
     const char *(*sensor_name)(void);
 } hal_camera_driver_t;
 

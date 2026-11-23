@@ -251,8 +251,10 @@ static void net_task(void *arg)
     }
 }
 
-esp_err_t net_task_start(void)
+esp_err_t net_task_start(const mg_settings_t *cfg)
 {
+    static char mqtt_uri[96];
+    mg_settings_mqtt_uri(cfg, mqtt_uri, sizeof(mqtt_uri));
     s_net.rx = xQueueCreate(RX_QUEUE_LEN, sizeof(rx_msg_t));
     if (!s_net.rx) {
         return ESP_ERR_NO_MEM;
@@ -260,7 +262,11 @@ esp_err_t net_task_start(void)
     ESP_ERROR_CHECK(esp_event_handler_register(MG_WIFI_EVENT, ESP_EVENT_ANY_ID, on_event, NULL));
     ESP_ERROR_CHECK(esp_event_handler_register(MG_MQTT_EVENT, ESP_EVENT_ANY_ID, on_event, NULL));
 
-    const mg_wifi_config_t wcfg = { .hostname = SYS_NODE_ID };
+    const mg_wifi_config_t wcfg = {
+        .hostname = SYS_NODE_ID,
+        .ssid = cfg->wifi_ssid,
+        .password = cfg->wifi_pass,
+    };
     esp_err_t err = mg_wifi_start(&wcfg);
     if (err != ESP_OK) {
         ESP_LOGE(TAG, "WiFi no iniciado: %s", esp_err_to_name(err));
@@ -273,6 +279,8 @@ esp_err_t net_task_start(void)
     mg_topic(s_net.topic_ack, sizeof(s_net.topic_ack), MG_NODE_DISP, SYS_NODE_ID, MG_CH_CMD_ACK);
     s_net.lwt = build_status(MG_STATE_OFFLINE);
     const mg_mqtt_config_t mcfg = {
+        .uri = mqtt_uri,
+        .password = cfg->mqtt_pass,
         .client_id = SYS_NODE_ID,
         .username = CONFIG_MG_MQTT_USERNAME[0] ? NULL : SYS_NODE_ID,
         .lwt_topic = s_net.topic_status,

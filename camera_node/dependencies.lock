@@ -97,6 +97,24 @@ dependencies:
       path: ../components/mg_ota
       type: local
     version: 0.1.0
+  mg_portal:
+    dependencies:
+    - name: idf
+      version: '>=6.0'
+    - name: mg_settings
+      path: ../mg_settings
+    source:
+      path: ../components/mg_portal
+      type: local
+    version: 0.1.0
+  mg_settings:
+    dependencies:
+    - name: idf
+      version: '>=6.0'
+    source:
+      path: ../components/mg_settings
+      type: local
+    version: 0.1.0
   mg_time:
     dependencies:
     - name: idf
@@ -123,8 +141,10 @@ direct_dependencies:
 - mg_contract
 - mg_mqtt
 - mg_ota
+- mg_portal
+- mg_settings
 - mg_time
 - mg_wifi
-manifest_hash: 868f2e589d2eee160d5e1ca6b3428e4ed0bec847db91b14f26a30d2e77a7ce12
+manifest_hash: 95866dca931ad049fa88bbce468e0d8ae98e7aea71352370dcd9354565c9393f
 target: esp32s3
 version: 3.0.0

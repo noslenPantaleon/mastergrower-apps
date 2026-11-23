@@ -8,6 +8,7 @@ idf_component_register(
          "services/api_jobs.c"
          "services/jpeg_util.c"
          "services/rtc_sync.c"
+         "services/net_setup.c"
          "ui/ui_bridge.c"
          "ui/lv_mem_psram.c"
          "ui/c/theme.c"
@@ -25,9 +26,10 @@ idf_component_register(
          "ui/c/scr_env.c"
          "ui/c/scr_grow.c"
          "ui/c/scr_act.c"
+         "ui/c/scr_net.c"
     INCLUDE_DIRS "." "config" "model" "processes" "services" "ui" "ui/c"
     EMBED_FILES "fonts/Montserrat-Medium.ttf"
-    PRIV_REQUIRES node_hal mg_wifi mg_mqtt mg_time mg_contract mg_api mg_ota
+    PRIV_REQUIRES node_hal mg_wifi mg_mqtt mg_time mg_contract mg_api mg_ota mg_settings
                   nvs_flash esp_netif esp_event esp_timer esp_psram esp_app_format
 )
 

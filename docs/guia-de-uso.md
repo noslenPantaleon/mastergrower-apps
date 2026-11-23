@@ -173,6 +173,19 @@ Duración total aproximada: 25 minutos.
 5. **Contar**: si el firmware nuevo no lograra conectarse, a los 3 minutos la placa vuelve sola a
    la versión anterior (probado).
 
+## 10b. Cambiar de red o de servidor (aprovisionamiento) (3 min)
+
+- **Pantalla**: **Config** → **Red y servidor…**. Elegir la red de la lista (**Buscar redes**),
+  escribir la clave, el servidor (IP o `nombre.local`) y tocar **Guardar y reiniciar**.
+  **Valores de fábrica** vuelve a los datos con los que se compiló.
+- **Cámara** (no tiene pantalla: arma su propia red WiFi con una página de configuración):
+  1. Con la cámara encendida, mantener **BOOT 5 s** (no al enchufarla: así entra en modo de
+     grabación por USB). También entra sola si no tiene red guardada o si pasa 5 min sin WiFi.
+  2. Desde el celular, conectarse a `MasterGrow-cam-01-XXXX` (la clave sale en el log de la
+     placa); la página se abre sola o en `http://192.168.4.1`.
+  3. Elegir la red, la clave y el servidor → **Probar y guardar**. La cámara prueba el WiFi y que
+     el broker y la API respondan; si todo está bien, guarda y reinicia.
+
 ## 11. Cierre (1 min)
 
 - **Mostrar** `http://localhost:8000/docs`: toda la API documentada (OpenAPI), generada desde el
@@ -191,4 +204,5 @@ Duración total aproximada: 25 minutos.
 | No llegan fotos a la galería | Terminal A: ¿la cámara publica `status`? ¿La API está arriba? |
 | La vista en vivo no arranca | La cámara tiene que estar *En línea*; probar de nuevo con **Reintentar** |
 | El botón de OTA no aparece | La versión subida tiene que ser distinta de la que tiene la placa |
+| La cámara dice "Poca planta" con la planta a la vista | Evitar contraluz (ventana detrás) y revisar que la lente no tenga la película protectora |
 | Quiero ver el log de una placa | Cerrar cualquier monitor abierto y `idf.py -p <puerto> monitor` (salir con Ctrl+]) |

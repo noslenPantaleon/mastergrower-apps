@@ -5,6 +5,9 @@
  */
 #include "mg_wifi.h"
 
+#include <stdlib.h>
+#include <string.h>
+
 #include <inttypes.h>
 #include <stdio.h>
 #include <string.h>
@@ -31,11 +34,16 @@ static struct {
     uint32_t backoff_ms;
     bool started;
     bool stopping;
+    volatile bool scanning;   /**< durante una búsqueda no se reintenta conectar */
 } s_wifi;
 
 static void retry_timer_cb(void *arg)
 {
     (void)arg;
+    if (s_wifi.scanning) {
+        esp_timer_start_once(s_wifi.retry_timer, 3000000ULL);  // después de la búsqueda
+        return;
+    }
     ESP_LOGI(TAG, "Reintentando conexión...");
     esp_err_t err = esp_wifi_connect();
     if (err != ESP_OK) {
@@ -199,4 +207,55 @@ esp_err_t mg_wifi_get_ip_str(char *buf, size_t len)
     }
     snprintf(buf, len, IPSTR, IP2STR(&ip.ip));
     return ESP_OK;
+}
+
+int mg_wifi_scan(mg_wifi_ap_t *out, int max)
+{
+    if (!s_wifi.started || !out || max <= 0) {
+        return -1;
+    }
+    s_wifi.scanning = true;
+    wifi_scan_config_t sc = { .show_hidden = false };
+    esp_err_t err = esp_wifi_scan_start(&sc, true);
+    if (err == ESP_ERR_WIFI_STATE) {
+        /* Conectando: se corta el intento en curso y se busca (después se reintenta solo) */
+        esp_wifi_disconnect();
+        vTaskDelay(pdMS_TO_TICKS(200));
+        err = esp_wifi_scan_start(&sc, true);
+    }
+    int n = -1;
+    if (err == ESP_OK) {
+        uint16_t found = 0;
+        esp_wifi_scan_get_ap_num(&found);
+        wifi_ap_record_t *recs = calloc(found ? found : 1, sizeof(wifi_ap_record_t));
+        if (recs) {
+            esp_wifi_scan_get_ap_records(&found, recs);  // ya vienen de la más fuerte a la más débil
+            n = 0;
+            for (int i = 0; i < found && n < max; i++) {
+                if (!recs[i].ssid[0]) {
+                    continue;
+                }
+                bool dup = false;
+                for (int k = 0; k < n && !dup; k++) {
+                    dup = strcmp(out[k].ssid, (const char *)recs[i].ssid) == 0;
+                }
+                if (!dup) {
+                    strlcpy(out[n].ssid, (const char *)recs[i].ssid, sizeof(out[n].ssid));
+                    out[n].rssi = recs[i].rssi;
+                    out[n].secured = recs[i].authmode != WIFI_AUTH_OPEN;
+                    n++;
+                }
+            }
+            free(recs);
+        } else {
+            esp_wifi_clear_ap_list();
+        }
+    } else {
+        ESP_LOGW(TAG, "No se pudo buscar redes: %s", esp_err_to_name(err));
+    }
+    s_wifi.scanning = false;
+    if (!mg_wifi_is_connected()) {
+        esp_wifi_connect();
+    }
+    return n;
 }

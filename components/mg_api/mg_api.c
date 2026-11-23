@@ -25,14 +25,35 @@ static const char *TAG = "mg_api";
 #define BOUNDARY_LEN  32
 #define WRITE_CHUNK   4096
 
+/* URL base y token en uso: los de Kconfig hasta que mg_api_configure() los cambie (mg_settings). */
+static char s_base[160] = CONFIG_MG_API_BASE_URL;
+static char s_token[128] = CONFIG_MG_API_TOKEN;
+
+esp_err_t mg_api_configure(const char *base_url, const char *token)
+{
+    if (base_url && base_url[0]) {
+        if (strlcpy(s_base, base_url, sizeof(s_base)) >= sizeof(s_base)) {
+            return ESP_ERR_INVALID_SIZE;
+        }
+        size_t n = strlen(s_base);
+        if (n && s_base[n - 1] == '/') {
+            s_base[n - 1] = '\0';  // sin barra final
+        }
+    }
+    if (token && token[0] && strlcpy(s_token, token, sizeof(s_token)) >= sizeof(s_token)) {
+        return ESP_ERR_INVALID_SIZE;
+    }
+    return ESP_OK;
+}
+
 const char *mg_api_base_url(void)
 {
-    return CONFIG_MG_API_BASE_URL;
+    return s_base;
 }
 
 const char *mg_api_token(void)
 {
-    return CONFIG_MG_API_TOKEN;
+    return s_token;
 }
 
 esp_err_t mg_api_url(const char *url_or_path, char *out, size_t out_len)
@@ -44,7 +65,7 @@ esp_err_t mg_api_url(const char *url_or_path, char *out, size_t out_len)
     if (strncmp(url_or_path, "http://", 7) == 0 || strncmp(url_or_path, "https://", 8) == 0) {
         n = snprintf(out, out_len, "%s", url_or_path);
     } else if (url_or_path[0] == '/') {
-        const char *base = CONFIG_MG_API_BASE_URL;
+        const char *base = s_base;
         const char *host = strstr(base, "://");
         if (!host) {
             return ESP_ERR_INVALID_ARG;
@@ -68,7 +89,7 @@ esp_err_t mg_api_ws_url(const char *url_or_path, char *out, size_t out_len)
         n = snprintf(out, out_len, "%s", url_or_path);
     } else if (url_or_path[0] == '/') {
         /* "http://host:8000/api/v1" → "ws://host:8000" + ruta */
-        const char *base = CONFIG_MG_API_BASE_URL;
+        const char *base = s_base;
         bool tls = strncmp(base, "https://", 8) == 0;
         const char *host = strstr(base, "://");
         if (!host) {
@@ -95,7 +116,7 @@ void mg_api_resp_free(mg_api_resp_t *resp)
 static esp_http_client_handle_t open_client(const char *path, esp_http_client_method_t method)
 {
     char url[URL_MAX];
-    int n = snprintf(url, sizeof(url), "%s%s", CONFIG_MG_API_BASE_URL, path);
+    int n = snprintf(url, sizeof(url), "%s%s", s_base, path);
     if (n < 0 || n >= (int)sizeof(url)) {
         ESP_LOGE(TAG, "URL demasiado larga: %s", path);
         return NULL;
@@ -115,7 +136,7 @@ static esp_http_client_handle_t open_client(const char *path, esp_http_client_me
         return NULL;
     }
     char auth[HDR_MAX];
-    snprintf(auth, sizeof(auth), "Bearer %s", CONFIG_MG_API_TOKEN);
+    snprintf(auth, sizeof(auth), "Bearer %s", s_token);
     esp_http_client_set_header(c, "Authorization", auth);
     return c;
 }

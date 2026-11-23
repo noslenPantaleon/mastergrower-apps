@@ -17,6 +17,6 @@ endif()
 idf_component_register(
     SRCS ${srcs}
     INCLUDE_DIRS "." "config"
-    PRIV_REQUIRES node_hal storage_queue config_store local_vision mg_wifi mg_mqtt mg_time mg_contract mg_api mg_ota
+    PRIV_REQUIRES node_hal storage_queue config_store local_vision mg_wifi mg_mqtt mg_time mg_contract mg_api mg_ota mg_settings mg_portal esp_driver_gpio
                   nvs_flash esp_netif esp_event esp_timer esp_psram esp_http_server esp_app_format
 )

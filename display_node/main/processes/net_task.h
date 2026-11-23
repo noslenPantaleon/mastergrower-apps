@@ -10,8 +10,10 @@
 
 #include "esp_err.h"
 #include "mg_contract.h"
+#include "mg_settings.h"
 
-esp_err_t net_task_start(void);
+/** @brief Arranca WiFi, NTP y MQTT con la red y el servidor de `cfg` (mg_settings). */
+esp_err_t net_task_start(const mg_settings_t *cfg);
 
 /** @brief Publica un acuse en growlab/disp/{id}/cmd/ack (seguro desde cualquier tarea). */
 void net_task_send_ack(const char *cmd_id, mg_ack_result_t res, const char *reason);

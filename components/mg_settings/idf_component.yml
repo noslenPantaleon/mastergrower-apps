@@ -1,0 +1,4 @@
+version: "0.1.0"
+description: "MasterGrow - credenciales de red y servidor en NVS (WiFi, MQTT, API), con Kconfig como valor por defecto"
+dependencies:
+  idf: ">=6.0"

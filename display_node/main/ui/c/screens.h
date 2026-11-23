@@ -37,6 +37,12 @@ void scr_camera_create(lv_obj_t *parent, void (*on_back)(void));
 void scr_camera_enter(const char *node_id);
 void scr_camera_refresh(uint32_t dirty);
 
+/** @brief Red y servidor (se abre desde Config). */
+void scr_net_create(lv_obj_t *parent, void (*on_back)(void));
+void scr_net_enter(void);
+void scr_net_leave(void);
+void ui_shell_open_net(void);
+
 void scr_config_create(lv_obj_t *parent);
 void scr_config_refresh(uint32_t dirty);
 

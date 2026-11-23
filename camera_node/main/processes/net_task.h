@@ -25,6 +25,9 @@ typedef esp_err_t (*net_cmd_handler_t)(const mg_cmd_t *cmd, char *reason, size_t
 esp_err_t net_task_register_cmd(mg_action_t action, net_cmd_handler_t handler);
 
 /** @brief Crea la tarea. Requiere mg_wifi iniciado. Inicia SNTP y MQTT por su cuenta. */
+/** @brief Broker y contraseña MQTT (de mg_settings). Llamar antes de net_task_start(). */
+void net_task_set_broker(const char *uri, const char *password);
+
 esp_err_t net_task_start(void);
 
 /** @brief Pide republicar el status (asíncrono, seguro desde cualquier tarea). */

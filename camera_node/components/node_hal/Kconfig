@@ -35,6 +35,25 @@ menu "MasterGrow - Cámara (HAL)"
         bool "Espejar horizontalmente"
         default n
 
+    config MG_CAMERA_BRIGHTNESS
+        int "Brillo del sensor (-2 a 2)"
+        default 1
+        range -2 2
+
+    config MG_CAMERA_CONTRAST
+        int "Contraste del sensor (-2 a 2)"
+        default 1
+        range -2 2
+
+    config MG_CAMERA_SATURATION
+        int "Saturación del sensor (-2 a 2)"
+        default 2
+        range -2 2
+        help
+            El análisis de color (local_vision) necesita saturación: con -2 (valor del ejemplo
+            de Espressif) las hojas quedaban en ~7 % de saturación y no se detectaba la planta.
+            Se puede probar en vivo con /control?saturation=N del servidor de depuración.
+
     config MG_SD_SPI_FREQ_KHZ
         int "Frecuencia SPI de la microSD (kHz)"
         default 20000

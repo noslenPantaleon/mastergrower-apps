@@ -1,0 +1,15 @@
+menu "MasterGrow - Red y servidor (valores por defecto)"
+
+    config MG_SETTINGS_MQTT_PORT
+        int "Puerto MQTT del servidor"
+        default 1883
+
+    config MG_SETTINGS_API_PORT
+        int "Puerto HTTP de la API"
+        default 8000
+
+    config MG_SETTINGS_API_PATH
+        string "Ruta base de la API"
+        default "/api/v1"
+
+endmenu

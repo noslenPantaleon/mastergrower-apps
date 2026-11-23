@@ -33,6 +33,7 @@ static struct {
     uint8_t quality;
     uint32_t ok;
     uint32_t failed;
+    hal_camera_tuning_t tuning;
 } s_cam;
 
 #define LOCK_TIMEOUT pdMS_TO_TICKS(5000)
@@ -68,6 +69,10 @@ esp_err_t hal_camera_init(const hal_camera_config_t *cfg)
     s_cam.quality = cfg->jpeg_quality;
     s_cam.ok = s_cam.failed = 0;
     s_cam.ready = true;
+    hal_camera_tuning_t tun = HAL_CAMERA_TUNING_DEFAULT();
+    if (hal_camera_set_tuning(&tun) != ESP_OK) {
+        ESP_LOGW(TAG, "No se pudo aplicar el ajuste de imagen por defecto");
+    }
     ESP_LOGI(TAG, "camera_type=%s sensor=%s res=%s q=%u", hal_camera_driver.camera_type,
              hal_camera_driver.sensor_name(), k_res[s_cam.res].name, s_cam.quality);
     return ESP_OK;
@@ -165,6 +170,41 @@ esp_err_t hal_camera_set_orientation(bool vflip, bool hmirror)
     esp_err_t err = hal_camera_driver.set_orientation(vflip, hmirror);
     unlock();
     return err;
+}
+
+static bool tuning_ok(int8_t v) { return v >= -2 && v <= 2; }
+
+esp_err_t hal_camera_set_tuning(const hal_camera_tuning_t *t)
+{
+    if (!t || !tuning_ok(t->brightness) || !tuning_ok(t->contrast) || !tuning_ok(t->saturation)) {
+        return ESP_ERR_INVALID_ARG;
+    }
+    if (!s_cam.ready) {
+        return ESP_ERR_INVALID_STATE;
+    }
+    if (!hal_camera_driver.set_tuning) {
+        return ESP_ERR_NOT_SUPPORTED;
+    }
+    if (!lock(LOCK_TIMEOUT)) {
+        return ESP_ERR_TIMEOUT;
+    }
+    esp_err_t err = hal_camera_driver.set_tuning(t);
+    if (err == ESP_OK) {
+        s_cam.tuning = *t;
+        ESP_LOGI(TAG, "Ajuste de imagen: brillo %d, contraste %d, saturación %d",
+                 t->brightness, t->contrast, t->saturation);
+    }
+    unlock();
+    return err;
+}
+
+esp_err_t hal_camera_get_tuning(hal_camera_tuning_t *out)
+{
+    if (!out) {
+        return ESP_ERR_INVALID_ARG;
+    }
+    *out = s_cam.tuning;
+    return ESP_OK;
 }
 
 esp_err_t hal_camera_discard_frames(uint8_t n)

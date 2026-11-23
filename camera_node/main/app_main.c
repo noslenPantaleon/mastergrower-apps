@@ -29,6 +29,10 @@
 #include "mg_time.h"
 #include "mg_wifi.h"
 #include "mg_ota.h"
+#include "mg_api.h"
+#include "driver/gpio.h"
+#include "mg_portal.h"
+#include "mg_settings.h"
 #include "cJSON.h"
 #include "processes/analysis_task.h"
 #include "processes/capture_task.h"
@@ -250,8 +254,77 @@ static esp_err_t cmd_reboot(const mg_cmd_t *cmd, char *reason, size_t reason_len
 
 /* ------------------------------------------------------------------ red */
 
+/* ------------------------------------------------------------------ red y servidor (mg_settings) */
+
+static mg_settings_t s_settings;
+static volatile bool s_ever_connected;
+
+#define SETUP_BUTTON_GPIO   0      /**< BOOT del XIAO */
+#define SETUP_HOLD_MS       5000
+#define NO_WIFI_SETUP_S     300    /**< sin conectarse nunca en 5 min → modo configuración */
+
+static void enter_setup_and_restart(const char *why)
+{
+    ESP_LOGW(TAG, "%s: reinicio en modo configuración", why);
+    mg_settings_request_setup();
+    esp_restart();
+}
+
+/** BOOT apretado 5 s con la cámara funcionando → modo configuración (al encender no sirve: con
+ *  GPIO0 en bajo el chip entra al modo de grabación). Pila interna: escribe la flash. */
+static void setup_button_task(void *arg)
+{
+    gpio_config_t io = { .pin_bit_mask = 1ULL << SETUP_BUTTON_GPIO, .mode = GPIO_MODE_INPUT,
+                         .pull_up_en = GPIO_PULLUP_ENABLE };
+    gpio_config(&io);
+    int held_ms = 0;
+    for (;;) {
+        vTaskDelay(pdMS_TO_TICKS(100));
+        held_ms = gpio_get_level(SETUP_BUTTON_GPIO) == 0 ? held_ms + 100 : 0;
+        if (held_ms == 1000) {
+            ESP_LOGI(TAG, "BOOT apretado: seguí 4 s más para el modo configuración");
+        }
+        if (held_ms >= SETUP_HOLD_MS) {
+            enter_setup_and_restart("BOOT apretado 5 s");
+        }
+    }
+}
+
+static void no_wifi_check(void *arg)
+{
+    if (!s_ever_connected) {  // corre en la tarea de esp_timer (pila interna)
+        enter_setup_and_restart("No se pudo conectar al WiFi en 5 min");
+    }
+}
+
+/** Carga red y servidor; si no hay red o se pidió, abre el portal (no vuelve). */
+static void init_settings_or_portal(void)
+{
+    mg_settings_load(&s_settings);
+    bool requested = mg_settings_take_setup_request();
+    if (requested || !s_settings.wifi_ssid[0]) {
+        ESP_LOGW(TAG, "Modo configuración (%s)", requested ? "pedido" : "sin red WiFi guardada");
+        const mg_portal_config_t pc = { .node_id = SYS_NODE_ID, .timeout_s = 900 };
+        mg_portal_run(&pc);  // reinicia al guardar o a los 15 min sin uso
+    }
+    char api_url[128], mqtt_uri[96];
+    mg_settings_api_url(&s_settings, api_url, sizeof(api_url));
+    mg_settings_mqtt_uri(&s_settings, mqtt_uri, sizeof(mqtt_uri));
+    mg_api_configure(api_url, s_settings.api_token);
+    net_task_set_broker(mqtt_uri, s_settings.mqtt_pass);
+    ESP_LOGI(TAG, "Red \"%s\" · servidor %s", s_settings.wifi_ssid, s_settings.server);
+
+    xTaskCreate(setup_button_task, "setup_btn", 3072, NULL, 2, NULL);
+    const esp_timer_create_args_t ta = { .callback = no_wifi_check, .name = "no_wifi" };
+    esp_timer_handle_t t;
+    if (esp_timer_create(&ta, &t) == ESP_OK) {
+        esp_timer_start_once(t, (uint64_t)NO_WIFI_SETUP_S * 1000000);
+    }
+}
+
 static void on_wifi_connected(void *arg, esp_event_base_t base, int32_t id, void *data)
 {
+    s_ever_connected = true;
     char ip[16];
     mg_wifi_get_ip_str(ip, sizeof(ip));
 #if CONFIG_MG_DEBUG_HTTP
@@ -266,7 +339,8 @@ static esp_err_t start_network(void)
 {
     ESP_ERROR_CHECK(esp_event_handler_register(MG_WIFI_EVENT, MG_WIFI_EVENT_CONNECTED,
                                                on_wifi_connected, NULL));
-    const mg_wifi_config_t wcfg = { .hostname = SYS_NODE_ID };
+    const mg_wifi_config_t wcfg = { .hostname = SYS_NODE_ID, .ssid = s_settings.wifi_ssid,
+                                     .password = s_settings.wifi_pass };
     esp_err_t err = mg_wifi_start(&wcfg);
     if (err != ESP_OK) {
         /* Sin WiFi el nodo igual debería capturar y guardar en SD (modo autónomo, C4). */
@@ -324,6 +398,7 @@ void app_main(void)
     init_config();
     ESP_ERROR_CHECK(esp_netif_init());
     ESP_ERROR_CHECK(esp_event_loop_create_default());
+    init_settings_or_portal();  // antes que la cámara: en modo configuración no se captura
     log_memory("arranque");
 
     init_storage();

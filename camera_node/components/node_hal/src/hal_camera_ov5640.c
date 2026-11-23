@@ -27,5 +27,6 @@ const hal_camera_driver_t hal_camera_driver = {
     .set_resolution = hal_dvp_set_resolution,
     .set_quality = hal_dvp_set_quality,
     .set_orientation = hal_dvp_set_orientation,
+    .set_tuning = hal_dvp_set_tuning,
     .sensor_name = hal_dvp_sensor_name,
 };

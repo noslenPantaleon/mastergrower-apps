@@ -20,6 +20,9 @@
 #include "hal_touch.h"
 #include "net_task.h"
 #include "mg_ota.h"
+#include "mg_api.h"
+#include "mg_settings.h"
+#include "net_setup.h"
 #include "nvs_flash.h"
 #include "esp_event.h"
 #include "esp_netif.h"
@@ -35,6 +38,8 @@
 #include "ui_api.h"
 
 static const char *TAG = "app";
+
+static mg_settings_t s_settings;
 
 
 static void log_memory(const char *when)
@@ -133,12 +138,18 @@ void app_main(void)
     log_memory("arranque");
     json_to_psram();
     ESP_ERROR_CHECK(init_nvs());
+    /* Red y servidor: NVS (cargados desde la pantalla) o, si no hay, los de Kconfig */
+    mg_settings_load(&s_settings);
+    char api_url[128];
+    mg_settings_api_url(&s_settings, api_url, sizeof(api_url));
+    mg_api_configure(api_url, s_settings.api_token);
     mg_ota_init(ota_failed, ota_confirmed);  // si este firmware es nuevo: a prueba hasta conectar
     ESP_ERROR_CHECK(esp_netif_init());
     ESP_ERROR_CHECK(esp_event_loop_create_default());
     state_store_init();
     ESP_ERROR_CHECK(command_publisher_init());
     ESP_ERROR_CHECK(api_jobs_start());
+    ESP_ERROR_CHECK(net_setup_start(&s_settings));
 
     ESP_ERROR_CHECK(hal_board_init());
     rtc_sync_start();  // hora del RTC antes que la red (si no hay RTC, se sigue con NTP)
@@ -174,7 +185,7 @@ void app_main(void)
     if (err2 != ESP_OK) {
         ESP_LOGE(TAG, "Miniaturas no disponibles: %s", esp_err_to_name(err2));
     }
-    esp_err_t net = net_task_start();
+    esp_err_t net = net_task_start(&s_settings);
     if (net != ESP_OK) {
         ESP_LOGE(TAG, "Red no iniciada (%s): la pantalla sigue sin datos", esp_err_to_name(net));
     }

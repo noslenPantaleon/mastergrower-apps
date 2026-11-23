@@ -21,4 +21,5 @@ void hal_dvp_release(hal_frame_t *frame);
 esp_err_t hal_dvp_set_resolution(hal_camera_res_t res);
 esp_err_t hal_dvp_set_quality(uint8_t q);
 esp_err_t hal_dvp_set_orientation(bool vflip, bool hmirror);
+esp_err_t hal_dvp_set_tuning(const hal_camera_tuning_t *t);
 const char *hal_dvp_sensor_name(void);

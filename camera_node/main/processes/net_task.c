@@ -236,6 +236,14 @@ esp_err_t net_task_register_cmd(mg_action_t action, net_cmd_handler_t handler)
 
 /* ---------------------------------------------------------------- tarea */
 
+static char s_broker_uri[96], s_broker_pass[65];
+
+void net_task_set_broker(const char *uri, const char *password)
+{
+    strlcpy(s_broker_uri, uri ? uri : "", sizeof(s_broker_uri));
+    strlcpy(s_broker_pass, password ? password : "", sizeof(s_broker_pass));
+}
+
 static void start_mqtt(void)
 {
     /* LWT: lo publica el broker si el nodo desaparece sin desconectarse. */
@@ -252,6 +260,8 @@ static void start_mqtt(void)
 
     const mg_mqtt_config_t cfg = {
         .client_id = SYS_NODE_ID,
+        .uri = s_broker_uri[0] ? s_broker_uri : NULL,          // NULL → Kconfig
+        .password = s_broker_pass[0] ? s_broker_pass : NULL,
         /* Usuario MQTT = node_id salvo que se configure otro (las ACL del broker usan %u). */
         .username = CONFIG_MG_MQTT_USERNAME[0] ? NULL : SYS_NODE_ID,
         .lwt_topic = s_net.topic_status,

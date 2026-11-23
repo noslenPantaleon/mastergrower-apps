@@ -1,0 +1,6 @@
+version: "0.1.0"
+description: "MasterGrow - portal de configuración (red WiFi propia + página web) para nodos sin pantalla"
+dependencies:
+  idf: ">=6.0"
+  mg_settings:
+    path: ../mg_settings
