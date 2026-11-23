@@ -28,6 +28,8 @@
 #include "storage_queue.h"
 #include "mg_time.h"
 #include "mg_wifi.h"
+#include "mg_ota.h"
+#include "cJSON.h"
 #include "processes/analysis_task.h"
 #include "processes/capture_task.h"
 #include "processes/config_sync_task.h"
@@ -210,6 +212,35 @@ static void reboot_task(void *arg)
     esp_restart();
 }
 
+/* ------------------------------------------------------------------ OTA (C9) */
+
+static void ota_failed(const char *cmd_id, const char *reason)
+{
+    net_task_send_ack(cmd_id, MG_ACK_REJECTED, reason);
+}
+
+static void ota_confirmed(const char *cmd_id, const char *version)
+{
+    if (cmd_id[0]) {
+        net_task_send_ack(cmd_id, MG_ACK_DONE, NULL);  // el "done" del ota_update que la instaló
+    }
+    net_task_request_status();  // publica el firmware nuevo
+}
+
+/** ota_update → descarga en segundo plano: "accepted" ahora, "done" después del reinicio. */
+static esp_err_t cmd_ota_update(const mg_cmd_t *cmd, char *reason, size_t reason_len)
+{
+    const cJSON *p = cmd->params;
+    mg_ota_req_t req = {
+        .cmd_id = cmd->cmd_id,
+        .url = cJSON_GetStringValue(cJSON_GetObjectItemCaseSensitive(p, "url")),
+        .version = cJSON_GetStringValue(cJSON_GetObjectItemCaseSensitive(p, "version")),
+        .sha256 = cJSON_GetStringValue(cJSON_GetObjectItemCaseSensitive(p, "sha256")),
+    };
+    esp_err_t err = mg_ota_start(&req, reason, reason_len);
+    return err == ESP_OK ? ESP_ERR_NOT_FINISHED : err;
+}
+
 static esp_err_t cmd_reboot(const mg_cmd_t *cmd, char *reason, size_t reason_len)
 {
     ESP_LOGW(TAG, "Reinicio pedido por %s", cmd->sender);
@@ -244,8 +275,10 @@ static esp_err_t start_network(void)
         return err;
     }
 
-    net_task_register_cmd(MG_ACTION_CAPTURE_NOW, cmd_capture_now);
-    net_task_register_cmd(MG_ACTION_REBOOT, cmd_reboot);
+    /* Un registro que falla es un error de programación: que se vea (antes ota_update fallaba callado) */
+    ESP_ERROR_CHECK(net_task_register_cmd(MG_ACTION_CAPTURE_NOW, cmd_capture_now));
+    ESP_ERROR_CHECK(net_task_register_cmd(MG_ACTION_REBOOT, cmd_reboot));
+    ESP_ERROR_CHECK(net_task_register_cmd(MG_ACTION_OTA_UPDATE, cmd_ota_update));
     if (s_pipeline_ok) {
         /* Vista en vivo: registra start_stream/stop_stream (sin cámara quedan unsupported_action). */
         err = stream_task_start();
@@ -287,6 +320,7 @@ void app_main(void)
     ESP_LOGI(TAG, "PSRAM: %u KB", (unsigned)(psram / 1024));
 
     ESP_ERROR_CHECK(init_nvs());
+    mg_ota_init(ota_failed, ota_confirmed);  // si este firmware es nuevo: a prueba hasta conectar
     init_config();
     ESP_ERROR_CHECK(esp_netif_init());
     ESP_ERROR_CHECK(esp_event_loop_create_default());

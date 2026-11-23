@@ -1,0 +1,6 @@
+version: "0.1.0"
+description: "MasterGrow - actualización OTA por HTTP con verificación SHA-256 y rollback"
+dependencies:
+  idf: ">=6.0"
+  mg_api:
+    path: ../mg_api

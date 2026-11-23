@@ -13,3 +13,5 @@ dependencies:
     path: ../../components/mg_contract
   mg_api:
     path: ../../components/mg_api
+  mg_ota:
+    path: ../../components/mg_ota

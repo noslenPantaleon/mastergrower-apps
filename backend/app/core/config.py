@@ -40,6 +40,10 @@ class Settings(BaseSettings):
     max_image_bytes: int = 4 * 1024 * 1024
     thumb_max_px: tuple[int, int] = (320, 240)
 
+    # Firmware para OTA (D6/C9)
+    firmware_dir: str = "/data/firmware"
+    firmware_max_bytes: int = 6 * 1024 * 1024   # partición OTA de la pantalla (la cámara: 3 MB)
+
     # Vista en vivo (B5, Contrato §5.6). Un solo proceso: el reparto de cuadros vive en memoria.
     # URL de la API vista desde los nodos (p. ej. http://192.168.1.169:8000).
     # Vacía = ws_publish_url relativa, que el nodo resuelve contra su propia URL de la API.

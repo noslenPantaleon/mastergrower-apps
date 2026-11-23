@@ -60,6 +60,12 @@ void mg_api_resp_free(mg_api_resp_t *resp);
 /** @brief URL base configurada (para logs). */
 const char *mg_api_base_url(void);
 
+/**
+ * @brief URL HTTP absoluta: una URL http(s):// se copia; una ruta ("/api/v1/...") se completa con
+ *        el esquema, host y puerto de la URL base. Mismos retornos que mg_api_ws_url.
+ */
+esp_err_t mg_api_url(const char *url_or_path, char *out, size_t out_len);
+
 /** @brief Token Bearer del nodo (para clientes que no usan esp_http_client, p. ej. WebSocket). */
 const char *mg_api_token(void);
 

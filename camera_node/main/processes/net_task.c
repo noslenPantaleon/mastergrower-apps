@@ -16,6 +16,7 @@
 #include "hal_camera.h"
 #include "hal_storage.h"
 #include "mg_mqtt.h"
+#include "mg_ota.h"
 #include "mg_time.h"
 #include "mg_wifi.h"
 #include "system_config.h"
@@ -42,7 +43,7 @@ typedef struct {
 static struct {
     QueueHandle_t q;
     TaskHandle_t task;
-    net_cmd_handler_t handlers[MG_ACTION_SET_MODE + 1];
+    net_cmd_handler_t handlers[MG_ACTION_COUNT];
     char topic_status[MG_TOPIC_MAX_LEN];
     char topic_event[MG_TOPIC_MAX_LEN];
     char topic_cmd[MG_TOPIC_MAX_LEN];
@@ -203,7 +204,7 @@ static void handle_cmd(const char *json, size_t len)
         ESP_LOGW(TAG, "No se puede verificar la vigencia de %s (sin ts o sin hora)", cmd.cmd_id);
     }
 
-    net_cmd_handler_t h = s_net.handlers[cmd.action];
+    net_cmd_handler_t h = (unsigned)cmd.action < MG_ACTION_COUNT ? s_net.handlers[cmd.action] : NULL;
     if (cmd.action == MG_ACTION_UNKNOWN || !h) {
         net_task_send_ack(cmd.cmd_id, MG_ACK_REJECTED, "unsupported_action");
         mg_cmd_free(&cmd);
@@ -226,7 +227,7 @@ static void handle_cmd(const char *json, size_t len)
 
 esp_err_t net_task_register_cmd(mg_action_t action, net_cmd_handler_t handler)
 {
-    if (action == MG_ACTION_UNKNOWN || action > MG_ACTION_SET_MODE || !handler) {
+    if (action == MG_ACTION_UNKNOWN || (unsigned)action >= MG_ACTION_COUNT || !handler) {
         return ESP_ERR_INVALID_ARG;
     }
     s_net.handlers[action] = handler;
@@ -287,6 +288,7 @@ static void net_task(void *arg)
                 !app_state_set_state(MG_STATE_OPERATIONAL)) {
                 publish_status();
             }
+            mg_ota_note_mqtt_ok();  // condición para confirmar un firmware nuevo
             break;
         case NET_MSG_DISCONNECTED:
             if (app_state_get_state() != MG_STATE_ERROR) {

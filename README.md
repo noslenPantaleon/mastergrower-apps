@@ -43,6 +43,9 @@ curl http://localhost:8000/api/v1/health
 - Contrato: `uv run python scripts/export_contract.py` regenera `contract/openapi.json` (un test
   avisa si quedó viejo); `uv run python scripts/mqtt_validate.py 60` valida el tráfico MQTT real
   contra `contract/mqtt/schemas`.
+- Actualización OTA de los nodos: subir `version.txt` del proyecto, compilar y
+  `./scripts/fw_upload.sh ../camera_node/build/camera_node.bin`, después
+  `./scripts/fw_deploy.sh <firmware_id> cam-01` (ver `contract/http/firmware.md`).
 - Tests y lint: `uv run pytest` · `uv run ruff check .`. Migraciones: `uv run alembic revision --autogenerate -m "..."`
   (se aplican solas al arrancar el contenedor).
 - Desarrollo de la API: `uv sync`, `uv run pytest`, `uv run ruff check .`

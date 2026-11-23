@@ -47,10 +47,12 @@ services:
       DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
       MQTT_HOST: mosquitto
       IMAGES_DIR: /data/images
+      FIRMWARE_DIR: /data/firmware
     ports:
       - "8000:8000"            # expuesto a la LAN: los nodos suben capturas acá
     volumes:
       - images:/data/images
+      - firmware:/data/firmware
     depends_on:
       db: { condition: service_healthy }
       mosquitto: { condition: service_healthy }
@@ -59,3 +61,4 @@ volumes:
   mosquitto-data:
   db-data:
   images:
+  firmware:

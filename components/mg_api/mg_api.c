@@ -35,6 +35,29 @@ const char *mg_api_token(void)
     return CONFIG_MG_API_TOKEN;
 }
 
+esp_err_t mg_api_url(const char *url_or_path, char *out, size_t out_len)
+{
+    if (!url_or_path || !out || !out_len) {
+        return ESP_ERR_INVALID_ARG;
+    }
+    int n;
+    if (strncmp(url_or_path, "http://", 7) == 0 || strncmp(url_or_path, "https://", 8) == 0) {
+        n = snprintf(out, out_len, "%s", url_or_path);
+    } else if (url_or_path[0] == '/') {
+        const char *base = CONFIG_MG_API_BASE_URL;
+        const char *host = strstr(base, "://");
+        if (!host) {
+            return ESP_ERR_INVALID_ARG;
+        }
+        size_t prefix = (size_t)(host - base) + 3;
+        size_t host_len = strcspn(host + 3, "/");
+        n = snprintf(out, out_len, "%.*s%s", (int)(prefix + host_len), base, url_or_path);
+    } else {
+        return ESP_ERR_INVALID_ARG;
+    }
+    return (n > 0 && (size_t)n < out_len) ? ESP_OK : ESP_ERR_INVALID_SIZE;
+}
+
 esp_err_t mg_api_ws_url(const char *url_or_path, char *out, size_t out_len)
 {
     if (!url_or_path || !out || !out_len) {

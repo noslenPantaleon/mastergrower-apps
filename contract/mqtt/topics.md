@@ -13,7 +13,9 @@ con `kind` ∈ `cam`, `ctrl`, `disp`.
 | `growlab/ctrl/{id}/event` | módulo de control | pantalla, API | 1 | no | *(provisional)* |
 | `growlab/ctrl/{id}/cmd` | pantalla | módulo de control | 1 | no | `schemas/cmd.schema.json` |
 | `growlab/ctrl/{id}/cmd/ack` | módulo de control | pantalla | 1 | no | `schemas/cmd_ack.schema.json` |
-| `growlab/disp/{id}/status` | pantalla (opcional) | API | 1 | sí | *(pendiente)* |
+| `growlab/disp/{id}/status` | pantalla (LWT `offline`) | API | 1 | sí | *(pendiente)* |
+| `growlab/disp/{id}/cmd` | API (`ota_update`) | pantalla | 1 | no | `schemas/cmd.schema.json` |
+| `growlab/disp/{id}/cmd/ack` | pantalla | API | 1 | no | `schemas/cmd_ack.schema.json` |
 
 ## Reglas comunes
 

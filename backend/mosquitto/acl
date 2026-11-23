@@ -12,8 +12,9 @@ pattern write growlab/ctrl/%u/event
 pattern write growlab/ctrl/%u/cmd/ack
 pattern read  growlab/ctrl/%u/cmd
 
-# --- Pantalla (usuario disp-NN): lee todo, publica solo comandos y su estado ---
+# --- Pantalla (usuario disp-NN): lee todo, publica solo comandos, su estado y sus acks ---
 pattern write growlab/disp/%u/status
+pattern write growlab/disp/%u/cmd/ack
 
 user disp-01
 topic read  growlab/#

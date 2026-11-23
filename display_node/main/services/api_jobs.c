@@ -14,6 +14,7 @@
 #include "freertos/task.h"
 #include "jpeg_util.h"
 #include "mg_api.h"
+#include "mg_ota.h"
 #include "system_config.h"
 
 static const char *TAG = "api_jobs";
@@ -65,6 +66,9 @@ static void worker(void *arg)
         } else {
             d.r.body = resp.body;  // pasa a ser del resultado
             d.r.len = resp.body_len;
+        }
+        if (d.r.status >= 200 && d.r.status < 300) {
+            mg_ota_note_api_ok();  // la API responde: condición para confirmar un firmware nuevo
         }
         if (d.r.status == 0 || d.r.status >= 400) {
             ESP_LOGW(TAG, "%s %s → %d", j.kind == JOB_SEND ? j.method : "GET", j.path, d.r.status);

@@ -57,7 +57,8 @@ typedef enum {
 typedef enum {
     MG_ACTION_UNKNOWN = 0,
     MG_ACTION_CAPTURE_NOW, MG_ACTION_REFRESH_CONFIG, MG_ACTION_REBOOT, MG_ACTION_START_STREAM,
-    MG_ACTION_STOP_STREAM, MG_ACTION_SET_ACTUATOR, MG_ACTION_SET_MODE,
+    MG_ACTION_STOP_STREAM, MG_ACTION_SET_ACTUATOR, MG_ACTION_SET_MODE, MG_ACTION_OTA_UPDATE,
+    MG_ACTION_COUNT  /**< cantidad: dimensionar tablas con esto, nunca con la última acción */
 } mg_action_t;
 
 typedef enum { MG_ACK_ACCEPTED, MG_ACK_REJECTED, MG_ACK_DONE } mg_ack_result_t;

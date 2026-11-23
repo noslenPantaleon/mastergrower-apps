@@ -10,11 +10,13 @@
 #include <string.h>
 #include "api_jobs.h"
 #include "cJSON.h"
+#include "esp_app_desc.h"
 #include "esp_heap_caps.h"
 #include "esp_timer.h"
 #include "mg_api.h"
 #include "mg_wifi.h"
 #include "screens.h"
+#include "state_store.h"
 #include "sdkconfig.h"
 #include "theme.h"
 #include "ui_api.h"
@@ -29,7 +31,14 @@ static const char *THRESH_OPTS = "0,15\n0,20\n0,25\n0,30\n0,35\n0,40\n0,45\n0,50
 
 typedef enum { G_INTERVAL, G_START, G_END, G_THRESH, G_MODE, G_COUNT } gparam_t;
 
+#define FW_KINDS 3
+static const char *FW_KIND[FW_KINDS] = { "cam", "disp", "ctrl" };
+
 static struct {
+    lv_obj_t *fw_list;
+    char fw_id[FW_KINDS][16], fw_ver[FW_KINDS][32];   /**< último firmware subido por tipo */
+    char updating[SS_MAX_NODES][SS_ID_LEN];           /**< nodos con ota_update en curso */
+    char updating_to[SS_MAX_NODES][32];
     lv_obj_t *dd[G_COUNT], *src[G_COUNT], *status, *sys;
     int loaded[G_COUNT];
     uint32_t gen;
@@ -186,11 +195,132 @@ static void refresh_sys(void)
                           "API  %s\n"
                           "Memoria  interna %u KB · PSRAM %u KB\n"
                           "Encendido hace %d h %02d min",
-                          CONFIG_MG_NODE_ID, CONFIG_MG_FIRMWARE_VERSION, ip,
+                          CONFIG_MG_NODE_ID, esp_app_get_description()->version, ip,
                           mg_wifi_is_connected() ? mg_wifi_get_rssi() : 0, CONFIG_MG_MQTT_BROKER_URI,
                           mg_api_base_url(), (unsigned)(heap_caps_get_free_size(MALLOC_CAP_INTERNAL) / 1024),
                           (unsigned)(heap_caps_get_free_size(MALLOC_CAP_SPIRAM) / 1024), (int)(up / 3600),
                           (int)(up / 60 % 60));
+}
+
+/* ---------------------------------------------------------------- firmware (OTA) */
+
+static int kind_index(mg_node_kind_t k)
+{
+    return k == MG_NODE_CAM ? 0 : k == MG_NODE_DISP ? 1 : 2;
+}
+
+static int updating_slot(const char *node, bool create)
+{
+    for (int i = 0; i < SS_MAX_NODES; i++) {
+        if (strcmp(s_cf.updating[i], node) == 0) {
+            return i;
+        }
+    }
+    for (int i = 0; create && i < SS_MAX_NODES; i++) {
+        if (!s_cf.updating[i][0]) {
+            strlcpy(s_cf.updating[i], node, SS_ID_LEN);
+            return i;
+        }
+    }
+    return -1;
+}
+
+static void fw_render(void);
+
+static void on_deployed(api_result_t *r, void *ctx)
+{
+    int slot = (int)(intptr_t)ctx;
+    if (r->status != 200 || !r->body || !strstr(r->body, "\"sent\":true")) {
+        lv_label_set_text_fmt(s_cf.status, "No se pudo enviar la actualización (HTTP %d)", r->status);
+        s_cf.updating[slot][0] = '\0';
+    }
+    fw_render();
+}
+
+static void on_update(lv_event_t *e)
+{
+    static ss_node_t n;
+    const char *node = lv_obj_get_user_data(lv_event_get_target(e));
+    if (!state_store_node(node, &n)) {
+        return;
+    }
+    int k = kind_index(n.kind);
+    int slot = updating_slot(node, true);
+    if (slot < 0 || !s_cf.fw_id[k][0]) {
+        return;
+    }
+    strlcpy(s_cf.updating_to[slot], s_cf.fw_ver[k], sizeof(s_cf.updating_to[slot]));
+    char path[48], body[48];
+    snprintf(path, sizeof(path), "/firmware/%s/deploy", s_cf.fw_id[k]);
+    snprintf(body, sizeof(body), "{\"node_ids\":[\"%s\"]}", node);
+    api_send("POST", path, body, on_deployed, (void *)(intptr_t)slot);
+    fw_render();
+}
+
+/** Lista de nodos con su firmware y, si hay uno más nuevo subido, el botón para actualizar. */
+static void fw_render(void)
+{
+    static ss_node_t nodes[SS_MAX_NODES];
+    static char ids[SS_MAX_NODES][SS_ID_LEN];  /* user_data de los botones: vive mientras existan */
+    int n = state_store_nodes(nodes, SS_MAX_NODES);
+    lv_obj_clean(s_cf.fw_list);
+    for (int i = 0; i < n; i++) {
+        const ss_node_t *nd = &nodes[i];
+        int k = kind_index(nd->kind);
+        int slot = updating_slot(nd->node_id, false);
+        if (slot >= 0 && strcmp(nd->firmware, s_cf.updating_to[slot]) == 0) {
+            s_cf.updating[slot][0] = '\0';  // ya informa la versión nueva
+            slot = -1;
+        }
+        lv_obj_t *r = lv_obj_create(s_cf.fw_list);
+        lv_obj_remove_style_all(r);
+        lv_obj_set_size(r, LV_PCT(100), LV_SIZE_CONTENT);
+        lv_obj_set_flex_flow(r, LV_FLEX_FLOW_ROW);
+        lv_obj_set_flex_align(r, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+        lv_obj_set_style_pad_column(r, 6, 0);
+        lv_obj_t *l = theme_label(r, TH_FONT_SMALL, TH_FG, "");
+        lv_label_set_text_fmt(l, "%s  %s", nd->node_id, nd->firmware[0] ? nd->firmware : "-");
+        lv_obj_set_flex_grow(l, 1);
+        if (slot >= 0) {
+            theme_label(r, TH_FONT_SMALL, TH_WARN_BG, "actualizando…");
+        } else if (s_cf.fw_ver[k][0] && strcmp(s_cf.fw_ver[k], nd->firmware) != 0 && ui_node_online(nd)) {
+            strlcpy(ids[i], nd->node_id, SS_ID_LEN);
+            char txt[48];
+            snprintf(txt, sizeof(txt), "A %s", s_cf.fw_ver[k]);
+            lv_obj_t *b = theme_button(r, txt);
+            lv_obj_set_size(b, LV_SIZE_CONTENT, 34);
+            lv_obj_set_style_pad_hor(b, 10, 0);
+            lv_obj_set_user_data(b, ids[i]);
+            lv_obj_add_event_cb(b, on_update, LV_EVENT_CLICKED, NULL);
+        } else {
+            theme_label(r, TH_FONT_SMALL, TH_MUTED, "al día");
+        }
+    }
+}
+
+static void on_fw_list(api_result_t *r, void *ctx)
+{
+    if (r->status != 200 || !r->body) {
+        return;
+    }
+    memset(s_cf.fw_id, 0, sizeof(s_cf.fw_id));
+    memset(s_cf.fw_ver, 0, sizeof(s_cf.fw_ver));
+    cJSON *root = cJSON_ParseWithLength(r->body, r->len);
+    const cJSON *it;
+    /* La lista viene del más nuevo al más viejo: el primero de cada tipo es el último subido */
+    cJSON_ArrayForEach(it, cJSON_GetObjectItemCaseSensitive(root, "items")) {
+        const char *kind = cJSON_GetStringValue(cJSON_GetObjectItemCaseSensitive(it, "kind"));
+        for (int k = 0; kind && k < FW_KINDS; k++) {
+            if (strcmp(kind, FW_KIND[k]) == 0 && !s_cf.fw_id[k][0]) {
+                strlcpy(s_cf.fw_id[k], cJSON_GetStringValue(cJSON_GetObjectItemCaseSensitive(it, "firmware_id")),
+                        sizeof(s_cf.fw_id[k]));
+                strlcpy(s_cf.fw_ver[k], cJSON_GetStringValue(cJSON_GetObjectItemCaseSensitive(it, "version")),
+                        sizeof(s_cf.fw_ver[k]));
+            }
+        }
+    }
+    cJSON_Delete(root);
+    fw_render();
 }
 
 void scr_config_create(lv_obj_t *p)
@@ -237,13 +367,24 @@ void scr_config_create(lv_obj_t *p)
     s_cf.sys = theme_label(sys, TH_FONT_SMALL, TH_FG, "");
     lv_obj_set_width(s_cf.sys, LV_PCT(100));
     lv_label_set_long_mode(s_cf.sys, LV_LABEL_LONG_WRAP);
-    lv_obj_set_style_text_line_space(s_cf.sys, 6, 0);
+    lv_obj_set_style_text_line_space(s_cf.sys, 4, 0);
+    lv_obj_add_flag(sys, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_t *fwt = theme_label(sys, TH_FONT_SMALL, TH_MUTED, "FIRMWARE (OTA)");
+    lv_obj_set_style_margin_top(fwt, 6, 0);
+    s_cf.fw_list = lv_obj_create(sys);
+    lv_obj_remove_style_all(s_cf.fw_list);
+    lv_obj_set_size(s_cf.fw_list, LV_PCT(100), LV_SIZE_CONTENT);
+    lv_obj_set_flex_flow(s_cf.fw_list, LV_FLEX_FLOW_COLUMN);
+    lv_obj_set_style_pad_row(s_cf.fw_list, 4, 0);
 }
 
 void scr_config_refresh(uint32_t dirty)
 {
     if (dirty == UI_DIRTY_ALL) {
         load();
+        api_get("/firmware", 16 * 1024, on_fw_list, NULL);
+    } else if (dirty & UI_DIRTY_NODES) {
+        fw_render();  // un nodo informó otra versión (p. ej. terminó una actualización)
     }
     if (dirty & (UI_DIRTY_TICK | UI_DIRTY_CONN)) {
         refresh_sys();

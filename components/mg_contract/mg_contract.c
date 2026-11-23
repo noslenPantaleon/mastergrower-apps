@@ -17,7 +17,8 @@ static const char *const k_evt[] = { "early_lights_off", "plant_anomaly", "sd_fu
 static const char *const k_trigger[] = { "timer", "sensor_event", "remote_command", "post_actuation",
                                          "schedule" };
 static const char *const k_action[] = { "unknown", "capture_now", "refresh_config", "reboot", "start_stream",
-                                        "stop_stream", "set_actuator", "set_mode" };
+                                        "stop_stream", "set_actuator", "set_mode", "ota_update" };
+_Static_assert(sizeof(k_action) / sizeof(k_action[0]) == MG_ACTION_COUNT, "k_action y mg_action_t desalineados");
 static const char *const k_ack[] = { "accepted", "rejected", "done" };
 
 #define ENUM_STR(table, v) (((unsigned)(v) < ARRAY_LEN(table)) ? (table)[(v)] : "?")

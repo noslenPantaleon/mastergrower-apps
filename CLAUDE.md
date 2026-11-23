@@ -29,7 +29,10 @@ El Contrato .docx de referencia usa nombres en español: equivalencia en `contra
   Claves en `backend/.env` (gitignored, generadas al azar). Tests: `uv run pytest`, lint: `uv run ruff check .`
 - Ver tráfico MQTT: `backend/scripts/mqtt_watch.sh`; validarlo contra los esquemas:
   `cd backend && uv run python scripts/mqtt_validate.py 60`.
-- Si cambia la API: `uv run python scripts/export_contract.py` (regenera `contract/openapi.json`). Enviar comando: `backend/scripts/cam_cmd.sh capture_now`.
+- Si cambia la API: `uv run python scripts/export_contract.py` (regenera `contract/openapi.json`).
+- OTA: subir `version.txt` del nodo, `idf.py build`, `backend/scripts/fw_upload.sh <ruta .bin>` y
+  `backend/scripts/fw_deploy.sh <firmware_id> <node_id>` (o el botón en Config de la pantalla).
+  Tras cambiar el bootloader (rollback) hubo que grabar una vez por USB. Enviar comando: `backend/scripts/cam_cmd.sh capture_now`.
 - Capturas subidas: `http://localhost:8000/gallery?token=<token dev de API_USER_TOKENS en backend/.env>`.
 - La red del usuario NO responde NTP de pool.ntp.org por IPv4; time.google.com sí (es el primario).
 - **Nunca `uv run --active` con el entorno de IDF activado**: instala las dependencias del backend
@@ -233,5 +236,25 @@ El Contrato .docx de referencia usa nombres en español: equivalencia en `contra
       y una lista de eventos la dejaba en 7 KB libres; ahora interna estable ~104 KB (mín 49).
       Regla en la pantalla: todo lo que reserve memoria en volumen va a PSRAM; la interna queda
       para DMA (bounce buffers del panel), WiFi y pilas que tocan la flash.
-- [ ] D6 nodo de pantalla (LVGL Pro, NTP + RTC, OTA). Pendientes chicos: alta de nodos y zonas
-      desde la pantalla (necesita teclado), PIN opcional, caché de miniaturas en la microSD.
+- [x] **D6 (RTC)** — `node_hal/hal_rtc` (PCF85063 0x51, BCD, bit OS) + `services/rtc_sync`: hora del
+      RTC al arrancar (antes de la red) si el año es razonable (un RTC sin ajustar traía 2054) y
+      ajuste en cada `MG_TIME_EVENT_SYNCED`. Desvío medido 0 s.
+- [x] **OTA (C9 + D6)** — backend: tabla `firmware`, `POST/GET /firmware`, `/{kind}/latest`,
+      `/{id}/download`, `/{id}/deploy`; versión y proyecto se leen del `esp_app_desc_t` del `.bin`
+      (offset 32) → no se puede mandar el firmware de la pantalla a una cámara. Scripts
+      `backend/scripts/fw_upload.sh <bin>` y `fw_deploy.sh <f-id> <nodos…>`. Volumen `firmware`.
+      Componente compartido `components/mg_ota`: descarga con `esp_http_client` + `esp_ota_*`,
+      SHA-256 del archivo con PSA (mbedTLS 4.1 ya no tiene `mbedtls_sha256`), rechaza
+      `wrong_project`/`same_version` antes de grabar, guarda el cmd_id en NVS. Rollback
+      (`CONFIG_BOOTLOADER_APP_ROLLBACK_ENABLE`): la imagen nueva se confirma con MQTT + una
+      respuesta OK de la API; si no, a los 180 s vuelve atrás y avisa `rejected`/`rolled_back`.
+      **La confirmación escribe la flash: corre en una tarea propia con pila interna** (desde
+      api_jobs, con pila en PSRAM, daba `s_task_stack_is_sane_when_cache_frozen`).
+      **Versión = `version.txt` de cada proyecto** (`PROJECT_VER`); subirla antes de cada OTA.
+      La pantalla ahora acepta comandos (`growlab/disp/disp-01/cmd`, ACL de ack agregada) y en
+      Config muestra el firmware de cada nodo con botón "A x.y.z". Bug encontrado: la tabla de
+      handlers de la cámara medía `MG_ACTION_SET_MODE + 1` → ahora `MG_ACTION_COUNT` (+ static
+      assert). Probado: cámara 0.2.0→0.2.1→0.2.2→0.2.3, rollback real con una 0.2.3 sin broker,
+      pantalla 0.2.1→0.2.2→0.2.3 (~1,7 MB en 12–18 s).
+- [ ] D6 restante: variante LVGL Pro. Pendientes chicos: alta de nodos y zonas desde la pantalla
+      (necesita teclado), PIN opcional, caché de miniaturas en la microSD.

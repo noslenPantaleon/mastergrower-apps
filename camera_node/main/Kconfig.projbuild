@@ -6,9 +6,6 @@ menu "MasterGrow - Nodo de cámara"
         help
             Identificador único en el sistema (Contrato §3.1): cam-NN.
 
-    config MG_FIRMWARE_VERSION
-        string "Versión de firmware (se publica en status)"
-        default "0.1.0"
 
     config MG_STATUS_PERIOD_S
         int "Período de republicación del status (s)"

@@ -4,10 +4,12 @@
  */
 #pragma once
 
+#include "esp_app_desc.h"
 #include "sdkconfig.h"
 
 #define SYS_NODE_ID          CONFIG_MG_NODE_ID
-#define SYS_FIRMWARE_VERSION CONFIG_MG_FIRMWARE_VERSION
+/* Versión = version.txt del proyecto (PROJECT_VER): la misma que lee la API del .bin para OTA */
+#define SYS_FIRMWARE_VERSION (esp_app_get_description()->version)
 
 /* Red y modelo en el núcleo 0; LVGL (la única tarea que toca la interfaz) en el 1. */
 #define SYS_CORE_NET   0

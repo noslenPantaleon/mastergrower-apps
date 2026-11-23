@@ -79,6 +79,8 @@ def test_every_schema_is_documented():
     ("start_stream", {"session_id": "s-abc", "ws_publish_url": "/api/v1/stream/s-abc/publish",
                       "resolution": "qvga", "fps_max": 10, "ttl_s": 120}),
     ("stop_stream", {"session_id": "s-abc"}),
+    ("ota_update", {"url": "/api/v1/firmware/f-000001/download", "version": "0.2.0",
+                    "sha256": "a" * 64, "size": 1203136}),
 ])
 def test_api_commands_match_cmd_schema(action, params):
     assert errors("cmd.schema.json", command("cam-01", action, "x-1", params)) == []

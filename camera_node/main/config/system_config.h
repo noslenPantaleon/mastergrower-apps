@@ -4,10 +4,12 @@
  */
 #pragma once
 
+#include "esp_app_desc.h"
 #include "sdkconfig.h"
 
 #define SYS_NODE_ID          CONFIG_MG_NODE_ID
-#define SYS_FIRMWARE_VERSION CONFIG_MG_FIRMWARE_VERSION
+/* Versión = version.txt del proyecto (PROJECT_VER): la misma que lee la API del .bin para OTA */
+#define SYS_FIRMWARE_VERSION (esp_app_get_description()->version)
 
 /* Núcleos (Arquitectura §3.2): red en el 0 junto a la pila WiFi; captura y análisis en el 1. */
 #define SYS_CORE_NET   0

@@ -14,6 +14,7 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "mg_api.h"
+#include "mg_ota.h"
 #include "mg_wifi.h"
 #include "net_task.h"
 #include "system_config.h"
@@ -121,6 +122,9 @@ static bool sync_once(void)
         return false;
     }
     bool ok = true;
+    if (resp.status == 304 || resp.status == 200) {
+        mg_ota_note_api_ok();  // la API responde: condición para confirmar un firmware nuevo
+    }
     if (resp.status == 304) {
         ESP_LOGI(TAG, "Config v%" PRIu32 " al día", cur);
     } else if (resp.status == 200) {

@@ -118,6 +118,16 @@ dependencies:
       path: ../components/mg_mqtt
       type: local
     version: 0.1.0
+  mg_ota:
+    dependencies:
+    - name: idf
+      version: '>=6.0'
+    - name: mg_api
+      path: ../mg_api
+    source:
+      path: ../components/mg_ota
+      type: local
+    version: 0.1.0
   mg_time:
     dependencies:
     - name: idf
@@ -145,8 +155,9 @@ direct_dependencies:
 - mg_api
 - mg_contract
 - mg_mqtt
+- mg_ota
 - mg_time
 - mg_wifi
-manifest_hash: bf6401b39376c7de49cd71760e67c582307f4a1e2fb80d7b81b411a48bf2e511
+manifest_hash: eb41781c388f6eadde25f94c40e252e25a18240cd7cdfcd83cf41de13e1703b5
 target: esp32s3
 version: 3.0.0

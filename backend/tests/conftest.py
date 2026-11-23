@@ -12,6 +12,7 @@ from PIL import Image
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.pool import StaticPool
 
+from app.api.v1.firmware import get_firmware_store
 from app.core.config import Settings, get_settings
 from app.core.db import get_session
 from app.main import create_app
@@ -75,6 +76,8 @@ async def build_app(settings, maker):
     app.dependency_overrides[get_settings] = lambda: settings
     app.dependency_overrides[get_session] = _session
     app.dependency_overrides[get_image_store] = lambda: store
+    fw_store = LocalImageStore(settings.images_dir + "-fw")
+    app.dependency_overrides[get_firmware_store] = lambda: fw_store
     hub = app.state.hub
     hub.s = settings
     hub.sessionmaker = lambda: maker

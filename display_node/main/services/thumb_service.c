@@ -16,6 +16,7 @@
 #include "freertos/idf_additions.h"
 #include "jpeg_util.h"
 #include "mg_api.h"
+#include "mg_ota.h"
 #include "mg_time.h"
 #include "mg_wifi.h"
 #include "system_config.h"
@@ -139,6 +140,7 @@ static bool fetch(const char *node_id)
         mg_api_resp_free(&resp);
         return false;
     }
+    mg_ota_note_api_ok();  // la API responde: condición para confirmar un firmware nuevo
     thumb_info_t info;
     bool have = parse_latest(resp.body, resp.body_len, &info);
     mg_api_resp_free(&resp);

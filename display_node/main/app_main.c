@@ -19,6 +19,7 @@
 #include "hal_lcd.h"
 #include "hal_touch.h"
 #include "net_task.h"
+#include "mg_ota.h"
 #include "nvs_flash.h"
 #include "esp_event.h"
 #include "esp_netif.h"
@@ -29,6 +30,7 @@
 #include "cJSON.h"
 #include "command_publisher.h"
 #include "live_view.h"
+#include "rtc_sync.h"
 #include "thumb_service.h"
 #include "ui_api.h"
 
@@ -96,6 +98,19 @@ static void json_to_psram(void)
     cJSON_InitHooks(&hooks);
 }
 
+static void ota_failed(const char *cmd_id, const char *reason)
+{
+    net_task_send_ack(cmd_id, MG_ACK_REJECTED, reason);
+}
+
+static void ota_confirmed(const char *cmd_id, const char *version)
+{
+    if (cmd_id[0]) {
+        net_task_send_ack(cmd_id, MG_ACK_DONE, NULL);  // el "done" del ota_update que la instaló
+    }
+    net_task_request_status();  // publica el firmware nuevo
+}
+
 static esp_err_t init_nvs(void)
 {
     esp_err_t err = nvs_flash_init();
@@ -118,6 +133,7 @@ void app_main(void)
     log_memory("arranque");
     json_to_psram();
     ESP_ERROR_CHECK(init_nvs());
+    mg_ota_init(ota_failed, ota_confirmed);  // si este firmware es nuevo: a prueba hasta conectar
     ESP_ERROR_CHECK(esp_netif_init());
     ESP_ERROR_CHECK(esp_event_loop_create_default());
     state_store_init();
@@ -125,6 +141,7 @@ void app_main(void)
     ESP_ERROR_CHECK(api_jobs_start());
 
     ESP_ERROR_CHECK(hal_board_init());
+    rtc_sync_start();  // hora del RTC antes que la red (si no hay RTC, se sigue con NTP)
     esp_lcd_panel_handle_t panel = NULL;
     ESP_ERROR_CHECK(hal_lcd_init(2, &panel));
     esp_lcd_touch_handle_t touch = NULL;

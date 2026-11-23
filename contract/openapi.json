@@ -1,6 +1,21 @@
 {
   "components": {
     "schemas": {
+      "Body_upload_api_v1_firmware_post": {
+        "properties": {
+          "file": {
+            "contentMediaType": "application/octet-stream",
+            "description": "imagen de app (build/<proyecto>.bin)",
+            "title": "File",
+            "type": "string"
+          }
+        },
+        "required": [
+          "file"
+        ],
+        "title": "Body_upload_api_v1_firmware_post",
+        "type": "object"
+      },
       "Body_upload_capture_api_v1_captures_post": {
         "properties": {
           "image": {
@@ -202,6 +217,92 @@
         "title": "CaptureOut",
         "type": "object"
       },
+      "DeployIn": {
+        "additionalProperties": false,
+        "properties": {
+          "node_ids": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 32,
+            "minItems": 1,
+            "title": "Node Ids",
+            "type": "array"
+          }
+        },
+        "required": [
+          "node_ids"
+        ],
+        "title": "DeployIn",
+        "type": "object"
+      },
+      "DeployOut": {
+        "properties": {
+          "firmware_id": {
+            "title": "Firmware Id",
+            "type": "string"
+          },
+          "results": {
+            "items": {
+              "$ref": "#/components/schemas/DeployResult"
+            },
+            "title": "Results",
+            "type": "array"
+          },
+          "version": {
+            "title": "Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "firmware_id",
+          "version",
+          "results"
+        ],
+        "title": "DeployOut",
+        "type": "object"
+      },
+      "DeployResult": {
+        "properties": {
+          "cmd_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cmd Id"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "node_id": {
+            "title": "Node Id",
+            "type": "string"
+          },
+          "sent": {
+            "title": "Sent",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "node_id",
+          "cmd_id",
+          "sent"
+        ],
+        "title": "DeployResult",
+        "type": "object"
+      },
       "EventList": {
         "properties": {
           "items": {
@@ -355,6 +456,87 @@
           "event_state"
         ],
         "title": "EventPatch",
+        "type": "object"
+      },
+      "FirmwareList": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/FirmwareOut"
+            },
+            "title": "Items",
+            "type": "array"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "title": "FirmwareList",
+        "type": "object"
+      },
+      "FirmwareOut": {
+        "properties": {
+          "created_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created At"
+          },
+          "download_url": {
+            "title": "Download Url",
+            "type": "string"
+          },
+          "firmware_id": {
+            "title": "Firmware Id",
+            "type": "string"
+          },
+          "idf_ver": {
+            "title": "Idf Ver",
+            "type": "string"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "project": {
+            "title": "Project",
+            "type": "string"
+          },
+          "sha256": {
+            "title": "Sha256",
+            "type": "string"
+          },
+          "size": {
+            "title": "Size",
+            "type": "integer"
+          },
+          "uploaded_by": {
+            "title": "Uploaded By",
+            "type": "string"
+          },
+          "version": {
+            "title": "Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "firmware_id",
+          "kind",
+          "version",
+          "project",
+          "idf_ver",
+          "size",
+          "sha256",
+          "uploaded_by",
+          "created_at",
+          "download_url"
+        ],
+        "title": "FirmwareOut",
         "type": "object"
       },
       "GlobalConfigOut": {
@@ -2435,6 +2617,325 @@
         "summary": "Patch Event",
         "tags": [
           "events"
+        ]
+      }
+    },
+    "/api/v1/firmware": {
+      "get": {
+        "operationId": "list_firmware_api_v1_firmware_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "kind",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "cam",
+                    "ctrl",
+                    "disp"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Kind"
+            }
+          },
+          {
+            "description": "alternativa al encabezado, para <img>",
+            "in": "query",
+            "name": "token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "alternativa al encabezado, para <img>",
+              "title": "Token"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FirmwareList"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Firmware",
+        "tags": [
+          "firmware"
+        ]
+      },
+      "post": {
+        "operationId": "upload_api_v1_firmware_post",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_upload_api_v1_firmware_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FirmwareOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Upload",
+        "tags": [
+          "firmware"
+        ]
+      }
+    },
+    "/api/v1/firmware/{firmware_id}": {
+      "delete": {
+        "operationId": "remove_api_v1_firmware__firmware_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "firmware_id",
+            "required": true,
+            "schema": {
+              "title": "Firmware Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Remove",
+        "tags": [
+          "firmware"
+        ]
+      }
+    },
+    "/api/v1/firmware/{firmware_id}/deploy": {
+      "post": {
+        "operationId": "deploy_api_v1_firmware__firmware_id__deploy_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "firmware_id",
+            "required": true,
+            "schema": {
+              "title": "Firmware Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeployIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeployOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Deploy",
+        "tags": [
+          "firmware"
+        ]
+      }
+    },
+    "/api/v1/firmware/{firmware_id}/download": {
+      "get": {
+        "operationId": "download_api_v1_firmware__firmware_id__download_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "firmware_id",
+            "required": true,
+            "schema": {
+              "title": "Firmware Id",
+              "type": "string"
+            }
+          },
+          {
+            "description": "alternativa al encabezado, para <img>",
+            "in": "query",
+            "name": "token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "alternativa al encabezado, para <img>",
+              "title": "Token"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/octet-stream": {}
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Download",
+        "tags": [
+          "firmware"
+        ]
+      }
+    },
+    "/api/v1/firmware/{kind}/latest": {
+      "get": {
+        "operationId": "latest_api_v1_firmware__kind__latest_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "kind",
+            "required": true,
+            "schema": {
+              "enum": [
+                "cam",
+                "ctrl",
+                "disp"
+              ],
+              "title": "Kind",
+              "type": "string"
+            }
+          },
+          {
+            "description": "alternativa al encabezado, para <img>",
+            "in": "query",
+            "name": "token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "alternativa al encabezado, para <img>",
+              "title": "Token"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FirmwareOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Latest",
+        "tags": [
+          "firmware"
         ]
       }
     },

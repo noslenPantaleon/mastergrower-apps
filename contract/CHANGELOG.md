@@ -1,5 +1,15 @@
 # Changelog del contrato
 
+## [contrato B / schema_version 1] — 2026-11-22 (OTA, D6)
+- HTTP: `POST/GET /firmware`, `GET /firmware/{kind}/latest`, `GET /firmware/{id}/download`,
+  `POST /firmware/{id}/deploy`, `DELETE /firmware/{id}` ([`http/firmware.md`](http/firmware.md)).
+  Versión y proyecto se leen del `esp_app_desc_t` del `.bin`. Tabla `firmware`.
+- MQTT: acción `ota_update` con `params: {url, version, sha256, size}`; motivos de rechazo
+  `same_version`, `wrong_project`, `download_failed`, `bad_checksum`, `busy`, `rolled_back`. El `done` llega
+  después del reinicio, cuando la versión nueva se confirmó (rollback si no conecta).
+- ACL: la pantalla (`disp-NN`) puede publicar en `growlab/disp/{id}/cmd/ack` y leer su `cmd`.
+- `firmware` del status = `version.txt` del proyecto (`PROJECT_VER`), no un Kconfig.
+
 ## [contrato B / schema_version 1] — 2026-11-22 (B6)
 - `contract/openapi.json` generado por FastAPI (`backend/scripts/export_contract.py`); un test
   falla si queda desactualizado respecto de la API.

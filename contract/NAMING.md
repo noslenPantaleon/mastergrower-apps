@@ -43,11 +43,11 @@ rutas y tablas. Los comentarios, los logs y la documentación siguen en español
 | tipo de evento | `luz_apagada_anticipada`, `anomalia_planta`, `sd_llena`, `error_camara`, `nodo_sin_conexion` | `early_lights_off`, `plant_anomaly`, `sd_full`, `camera_error`, `node_disconnected` |
 | trigger_type | `timer`, `evento_sensor`, `comando_remoto`, `post_actuacion`, `calendario` | `timer`, `sensor_event`, `remote_command`, `post_actuation`, `schedule` |
 | prioridad | `normal`, `alta` | `normal`, `high` |
-| acción | `set_actuador`, `set_modo` (el resto ya en inglés) | `set_actuator`, `set_mode` |
+| acción | `set_actuador`, `set_modo` (el resto ya en inglés) | `set_actuator`, `set_mode` (+ `ota_update`, agregada) |
 | estado del evento | `abierto`, `reconocido`, `resuelto` | `open`, `acknowledged`, `resolved` |
 | modo de cultivo (zona) | `sustrato`, `coco_goteo`, `hidroponia_dwc` | `substrate`, `coco_coir`, `dwc` |
 | estado del stream | `solicitada`, `activa`, `finalizada`, `error` | `requested`, `active`, `ended`, `error` |
-| motivo de rechazo (ack) | — | `unsupported_schema_version`, `invalid_format`, `expired`, `unsupported_action`, `outside_light_window`, `min_interval`, `queue_full`, `camera_error`, `out_of_memory`, `config_unavailable` (refresh_config sin respuesta de la API), `stream_connect_failed` (start_stream: no se pudo abrir el WebSocket); con `done`: `already_current`, `already_streaming`, `not_streaming` |
+| motivo de rechazo (ack) | — | `unsupported_schema_version`, `invalid_format`, `expired`, `unsupported_action`, `outside_light_window`, `min_interval`, `queue_full`, `camera_error`, `out_of_memory`, `config_unavailable` (refresh_config sin respuesta de la API), `stream_connect_failed` (start_stream: no se pudo abrir el WebSocket), `same_version`, `wrong_project`, `download_failed`, `bad_checksum`, `busy`, `rolled_back` (ota_update); con `done`: `already_current`, `already_streaming`, `not_streaming` |
 
 ## Rutas HTTP y tablas
 

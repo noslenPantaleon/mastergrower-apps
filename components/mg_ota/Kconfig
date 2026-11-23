@@ -1,0 +1,12 @@
+menu "MasterGrow - OTA"
+
+    config MG_OTA_CONFIRM_TIMEOUT_S
+        int "Tiempo para confirmar un firmware nuevo (s)"
+        default 180
+        range 30 3600
+        help
+            Un firmware recién instalado arranca "a prueba". Si en este tiempo no logra conectar
+            con el broker y la API, el nodo vuelve solo a la versión anterior (rollback).
+            Requiere CONFIG_BOOTLOADER_APP_ROLLBACK_ENABLE.
+
+endmenu

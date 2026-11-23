@@ -35,7 +35,8 @@
         "start_stream",
         "stop_stream",
         "set_actuator",
-        "set_mode"
+        "set_mode",
+        "ota_update"
       ]
     },
     "params": {
@@ -129,6 +130,48 @@
               "version": {
                 "type": "integer",
                 "minimum": 0
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "action": {
+            "const": "ota_update"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "params"
+        ],
+        "properties": {
+          "params": {
+            "type": "object",
+            "required": [
+              "url",
+              "version",
+              "sha256"
+            ],
+            "properties": {
+              "url": {
+                "type": "string",
+                "description": "ruta (/api/v1/firmware/{id}/download) o URL absoluta"
+              },
+              "version": {
+                "type": "string",
+                "maxLength": 31
+              },
+              "sha256": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$"
+              },
+              "size": {
+                "type": "integer",
+                "minimum": 1
               }
             }
           }

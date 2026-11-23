@@ -15,6 +15,7 @@
 #include "freertos/task.h"
 #include "mg_contract.h"
 #include "mg_mqtt.h"
+#include "mg_ota.h"
 #include "mg_time.h"
 #include "mg_wifi.h"
 #include "state_store.h"
@@ -32,9 +33,15 @@ typedef struct {
     size_t len;
 } rx_msg_t;
 
+#define SEEN_CMDS  8
+
 static struct {
     QueueHandle_t rx;
     char topic_status[MG_TOPIC_MAX_LEN];
+    char topic_cmd[MG_TOPIC_MAX_LEN];
+    char topic_ack[MG_TOPIC_MAX_LEN];
+    char seen[SEEN_CMDS][MG_CMD_ID_MAX_LEN + 1];  /**< últimos cmd_id (descarta repetidos) */
+    int seen_next;
     char *lwt;
     volatile bool status_due;
 } s_net;
@@ -82,8 +89,72 @@ static bool split_topic(char *topic, mg_node_kind_t *kind, char **id, char **cha
     return *id && *channel;
 }
 
+void net_task_send_ack(const char *cmd_id, mg_ack_result_t res, const char *reason)
+{
+    char *msg = mg_msg_cmd_ack(SYS_NODE_ID, cmd_id, res, reason);
+    if (msg) {
+        mg_mqtt_publish(s_net.topic_ack, msg, -1, 1, false);
+        free(msg);
+    }
+    ESP_LOGI(TAG, "ack %s %s%s%s", cmd_id, mg_ack_result_str(res), reason ? " " : "", reason ? reason : "");
+}
+
+void net_task_request_status(void)
+{
+    s_net.status_due = true;
+}
+
+/** Comandos a la pantalla (hoy solo ota_update). Mismas reglas que la cámara: vigencia y repetidos. */
+static void handle_cmd(const char *json, size_t len)
+{
+    mg_cmd_t cmd;
+    esp_err_t err = mg_cmd_parse(json, len, &cmd);
+    if (err != ESP_OK) {
+        if (cmd.cmd_id[0]) {
+            net_task_send_ack(cmd.cmd_id, MG_ACK_REJECTED,
+                              err == ESP_ERR_NOT_SUPPORTED ? "unsupported_schema_version" : "invalid_format");
+        }
+        mg_cmd_free(&cmd);
+        return;
+    }
+    for (int i = 0; i < SEEN_CMDS; i++) {
+        if (strcmp(s_net.seen[i], cmd.cmd_id) == 0) {
+            ESP_LOGW(TAG, "cmd %s repetido: se ignora", cmd.cmd_id);
+            mg_cmd_free(&cmd);
+            return;
+        }
+    }
+    strlcpy(s_net.seen[s_net.seen_next], cmd.cmd_id, sizeof(s_net.seen[0]));
+    s_net.seen_next = (s_net.seen_next + 1) % SEEN_CMDS;
+    if (cmd.ts && mg_time_is_valid() && time(NULL) - cmd.ts > MG_CMD_VALIDITY_S) {
+        net_task_send_ack(cmd.cmd_id, MG_ACK_REJECTED, "expired");
+        mg_cmd_free(&cmd);
+        return;
+    }
+    ESP_LOGI(TAG, "cmd %s (cmd_id=%s, de %s)", cmd.action_raw, cmd.cmd_id, cmd.sender);
+    if (cmd.action == MG_ACTION_OTA_UPDATE) {
+        mg_ota_req_t req = {
+            .cmd_id = cmd.cmd_id,
+            .url = cJSON_GetStringValue(cJSON_GetObjectItemCaseSensitive(cmd.params, "url")),
+            .version = cJSON_GetStringValue(cJSON_GetObjectItemCaseSensitive(cmd.params, "version")),
+            .sha256 = cJSON_GetStringValue(cJSON_GetObjectItemCaseSensitive(cmd.params, "sha256")),
+        };
+        char reason[32] = "";
+        err = mg_ota_start(&req, reason, sizeof(reason));
+        net_task_send_ack(cmd.cmd_id, err == ESP_OK ? MG_ACK_ACCEPTED : MG_ACK_REJECTED,
+                          err == ESP_OK ? NULL : reason);
+    } else {
+        net_task_send_ack(cmd.cmd_id, MG_ACK_REJECTED, "unsupported_action");
+    }
+    mg_cmd_free(&cmd);
+}
+
 static void handle(rx_msg_t *r)
 {
+    if (strcmp(r->topic, s_net.topic_cmd) == 0) {
+        handle_cmd(r->data, r->len);
+        return;
+    }
     mg_node_kind_t kind;
     char *id, *channel;
     if (!split_topic(r->topic, &kind, &id, &channel) || strlen(id) >= SS_ID_LEN) {
@@ -138,6 +209,7 @@ static void on_event(void *arg, esp_event_base_t base, int32_t id, void *data)
 {
     if (base == MG_MQTT_EVENT && id == MG_MQTT_EVENT_CONNECTED) {
         s_net.status_due = true;
+        mg_ota_note_mqtt_ok();  // condición para confirmar un firmware nuevo
     }
     update_conn();
 }
@@ -197,6 +269,8 @@ esp_err_t net_task_start(void)
     mg_time_start(NULL);
 
     mg_topic(s_net.topic_status, sizeof(s_net.topic_status), MG_NODE_DISP, SYS_NODE_ID, MG_CH_STATUS);
+    mg_topic(s_net.topic_cmd, sizeof(s_net.topic_cmd), MG_NODE_DISP, SYS_NODE_ID, MG_CH_CMD);
+    mg_topic(s_net.topic_ack, sizeof(s_net.topic_ack), MG_NODE_DISP, SYS_NODE_ID, MG_CH_CMD_ACK);
     s_net.lwt = build_status(MG_STATE_OFFLINE);
     const mg_mqtt_config_t mcfg = {
         .client_id = SYS_NODE_ID,
@@ -212,6 +286,7 @@ esp_err_t net_task_start(void)
     for (size_t i = 0; i < sizeof(filters) / sizeof(filters[0]); i++) {
         mg_mqtt_subscribe(filters[i], 1, on_mqtt_msg, NULL);
     }
+    mg_mqtt_subscribe(s_net.topic_cmd, 1, on_mqtt_msg, NULL);  // comandos propios (ota_update)
 
     BaseType_t ok = xTaskCreatePinnedToCore(net_task, "net_task", SYS_NET_TASK_STACK, NULL,
                                             SYS_NET_TASK_PRIO, NULL, SYS_CORE_NET);
