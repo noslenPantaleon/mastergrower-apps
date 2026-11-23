@@ -256,5 +256,13 @@ El Contrato .docx de referencia usa nombres en español: equivalencia en `contra
       handlers de la cámara medía `MG_ACTION_SET_MODE + 1` → ahora `MG_ACTION_COUNT` (+ static
       assert). Probado: cámara 0.2.0→0.2.1→0.2.2→0.2.3, rollback real con una 0.2.3 sin broker,
       pantalla 0.2.1→0.2.2→0.2.3 (~1,7 MB en 12–18 s).
-- [ ] D6 restante: variante LVGL Pro. Pendientes chicos: alta de nodos y zonas desde la pantalla
+- [x] **Control simulado** — contrato provisional `ctrl_state.schema.json` (sensores por modo de
+      cultivo, luz, actuadores) + `backend/scripts/ctrl_sim.py` (ctrl-01, día de cultivo creíble,
+      `--mode substrate|coco_coir|dwc`, `--hot`, Ctrl+C publica offline; usa el usuario MQTT de la
+      API). Pantalla: `state_store` guarda el estado del control y un historial de temp/humedad de
+      24 h (1 punto/min, PSRAM); Inicio con KPI y tendencia reales; Ambiente (gráfico + valores),
+      Cultivo (variables según modo) y Actuadores (solo lectura: falta `set_actuator`).
+      Guía para el video: `docs/guia-de-uso.md` (+ `backend/scripts/open_web.sh`).
+- [ ] D6 restante: variante LVGL Pro (rama `lvgl-pro`: LVGL 9.5 + proyecto del editor en
+      `display_node/main/ui/lvglpro`, falta exportar con el editor e integrar). Pendientes chicos: alta de nodos y zonas desde la pantalla
       (necesita teclado), PIN opcional, caché de miniaturas en la microSD.

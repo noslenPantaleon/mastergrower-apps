@@ -15,6 +15,7 @@
 #define UI_DIRTY_CMD     (1u << 3)
 #define UI_DIRTY_TICK    (1u << 4)  /**< pasó 1 s: reloj y "hace N min" */
 #define UI_DIRTY_THUMB   (1u << 5)  /**< hay miniaturas nuevas */
+#define UI_DIRTY_ENV     (1u << 6)  /**< datos nuevos del módulo de control */
 #define UI_DIRTY_ALL     0xffffffffu
 
 /** @brief Tema, fuentes, barras y pantalla de inicio. */

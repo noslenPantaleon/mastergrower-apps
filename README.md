@@ -5,11 +5,13 @@ documentos de especificación en [references/](references/).
 
 | Carpeta | Qué es | Estado |
 |---|---|---|
-| [contract/](contract/) | Fuente ejecutable del contrato (temas MQTT y JSON Schema) | v1 inicial |
-| [components/](components/) | Componentes ESP-IDF compartidos (`mg_wifi`, `mg_mqtt`, `mg_time`, `mg_contract`) | en desarrollo |
-| [camera_node/](camera_node/) | Firmware del nodo de cámara — Seeed XIAO ESP32-S3 Sense (OV3660) | fase C2 |
-| `display_node/` | Firmware del dashboard — Waveshare ESP32-S3-Touch-LCD-4.3B-BOX | pendiente |
-| [backend/](backend/) | API FastAPI + Mosquitto + PostgreSQL (docker compose) | fase B0 |
+| [contract/](contract/) | Fuente ejecutable del contrato (OpenAPI, temas MQTT y JSON Schema) | v1 + OTA |
+| [components/](components/) | Componentes ESP-IDF compartidos (`mg_wifi`, `mg_mqtt`, `mg_time`, `mg_contract`, `mg_api`, `mg_ota`) | estables |
+| [camera_node/](camera_node/) | Firmware del nodo de cámara — Seeed XIAO ESP32-S3 Sense (OV3660) | C1–C8 + OTA |
+| [display_node/](display_node/) | Firmware del dashboard — Waveshare ESP32-S3-Touch-LCD-4.3B | D0–D6 (falta LVGL Pro) |
+| [backend/](backend/) | API FastAPI + Mosquitto + PostgreSQL (docker compose) | B0–B6 + OTA |
+
+**Guía paso a paso para usar y demostrar el sistema:** [docs/guia-de-uso.md](docs/guia-de-uso.md).
 
 ## Requisitos
 

@@ -118,18 +118,9 @@ static void page_create(screen_id_t id)
     case SCR_HOME: scr_home_create(p); break;
     case SCR_CAMS: scr_cameras_create(p); break;
     case SCR_EVENTS: scr_events_create(p); break;
-    case SCR_ENV:
-        scr_placeholder_create(p, "Ambiente", "Series de temperatura, humedad, CO2 y luz: llegan cuando el "
-                               "módulo de control publique su estado (Contrato §4.4).");
-        break;
-    case SCR_GROW:
-        scr_placeholder_create(p, "Cultivo", "Variables según el modo de cultivo de la zona: esperan al "
-                               "módulo de control.");
-        break;
-    case SCR_ACT:
-        scr_placeholder_create(p, "Actuadores", "Relés del módulo de control (bomba, aire, luz, "
-                               "ventilación): esperan al módulo de control.");
-        break;
+    case SCR_ENV: scr_env_create(p); break;
+    case SCR_GROW: scr_grow_create(p); break;
+    case SCR_ACT: scr_act_create(p); break;
     case SCR_LIVE:
         scr_live_create(p, live_back);
         break;
@@ -149,6 +140,9 @@ static void refresh_current(uint32_t dirty)
     case SCR_HOME: scr_home_refresh(dirty); break;
     case SCR_CAMS: scr_cameras_refresh(dirty); break;
     case SCR_EVENTS: scr_events_refresh(dirty); break;
+    case SCR_ENV: scr_env_refresh(dirty); break;
+    case SCR_GROW: scr_grow_refresh(dirty); break;
+    case SCR_ACT: scr_act_refresh(dirty); break;
     case SCR_DETAIL: scr_camera_refresh(dirty); break;
     case SCR_CONFIG: scr_config_refresh(dirty); break;
     default: break;

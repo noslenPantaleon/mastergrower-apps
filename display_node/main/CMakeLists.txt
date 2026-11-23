@@ -21,6 +21,10 @@ idf_component_register(
          "ui/c/scr_camera.c"
          "ui/c/scr_config.c"
          "ui/c/scr_placeholder.c"
+         "ui/c/ui_env.c"
+         "ui/c/scr_env.c"
+         "ui/c/scr_grow.c"
+         "ui/c/scr_act.c"
     INCLUDE_DIRS "." "config" "model" "processes" "services" "ui" "ui/c"
     EMBED_FILES "fonts/Montserrat-Medium.ttf"
     PRIV_REQUIRES node_hal mg_wifi mg_mqtt mg_time mg_contract mg_api mg_ota

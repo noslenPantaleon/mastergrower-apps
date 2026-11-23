@@ -12,6 +12,7 @@ HTTP_SCHEMAS = CONTRACT_DIR / "http" / "schemas"
 # Canal MQTT → esquema (contract/mqtt/topics.md)
 CHANNEL_SCHEMA = {
     ("cam", "status"): "cam_status.schema.json",
+    ("ctrl", "state"): "ctrl_state.schema.json",
     ("cam", "event"): "cam_event.schema.json",
     ("cam", "cmd"): "cmd.schema.json",
     ("ctrl", "cmd"): "cmd.schema.json",

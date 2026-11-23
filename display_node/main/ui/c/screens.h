@@ -17,6 +17,13 @@ void scr_home_refresh(uint32_t dirty);
 void scr_cameras_create(lv_obj_t *parent);
 void scr_cameras_refresh(uint32_t dirty);
 
+void scr_env_create(lv_obj_t *parent);
+void scr_env_refresh(uint32_t dirty);
+void scr_grow_create(lv_obj_t *parent);
+void scr_grow_refresh(uint32_t dirty);
+void scr_act_create(lv_obj_t *parent);
+void scr_act_refresh(uint32_t dirty);
+
 void scr_events_create(lv_obj_t *parent);
 void scr_events_refresh(uint32_t dirty);
 

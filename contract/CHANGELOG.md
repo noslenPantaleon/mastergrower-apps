@@ -1,5 +1,12 @@
 # Changelog del contrato
 
+## [contrato B / schema_version 1] — 2026-11-23 (control simulado)
+- `growlab/ctrl/{id}/state` **provisional** ([`mqtt/schemas/ctrl_state.schema.json`](mqtt/schemas/ctrl_state.schema.json)):
+  `grow_mode`, `sensors` (temperature, humidity, co2, lux, substrate_moisture, substrate_ec, ph,
+  ec, dissolved_oxygen, water_temperature, reservoir_level; null si no aplica), `light {on,
+  cycle}` y `actuators [{id, state, mode}]`. Lo publica el simulador `backend/scripts/ctrl_sim.py`
+  y lo muestra la pantalla; se cierra cuando se defina el módulo de control (Contrato §4.4).
+
 ## [contrato B / schema_version 1] — 2026-11-22 (OTA, D6)
 - HTTP: `POST/GET /firmware`, `GET /firmware/{kind}/latest`, `GET /firmware/{id}/download`,
   `POST /firmware/{id}/deploy`, `DELETE /firmware/{id}` ([`http/firmware.md`](http/firmware.md)).

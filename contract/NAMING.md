@@ -26,6 +26,7 @@ rutas y tablas. Los comentarios, los logs y la documentación siguen en español
 | `analisis_local` / `analisis_servidor` | `local_analysis` / `server_analysis` |
 | `estado_subida` / `ruta_imagen` | `upload_state` / `image_path` |
 | `estado_evento` · `timestamp_inicio` · `timestamp_resolucion` | `event_state` · `started_at` · `resolved_at` |
+| sensores del control: `temperatura`, `humedad`, `co2`, `lux`, `humedad_sustrato`, `ec_sustrato`, `ph`, `ec`, `oxigeno_disuelto`, `temperatura_agua`, `nivel_reservorio` · actuadores `bomba_agua`, `bomba_aire`, `ventilador`, `luz` | `temperature`, `humidity`, `co2`, `lux`, `substrate_moisture`, `substrate_ec`, `ph`, `ec`, `dissolved_oxygen`, `water_temperature`, `reservoir_level` · `water_pump`, `air_pump`, `fan`, `light` (provisional) |
 | `ultima_conexion` · `modo_cultivo` · `ciclo_luz` | `last_seen` · `grow_mode` · `light_cycle` |
 | `stream_sesiones`: `solicitante`, `resolucion`, `inicio`, `fin`, `estado_stream` | `stream_sessions`: `requested_by`, `resolution`, `started_at`, `ended_at`, `stream_state` (+ `ttl_s`, `expires_at`, `end_reason`, `frames`, `bytes`) |
 | `tipo` (tabla nodos: cam, ctrl, disp) | `kind` |

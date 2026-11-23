@@ -1,8 +1,7 @@
 /**
  * @file scr_home.c
- * @brief Inicio (SRS de pantalla F-01): KPI ambientales, tendencia de 24 h, última captura.
- *        Las variables ambientales llegan con el módulo de control (Contrato §4.4): hasta
- *        entonces los KPI muestran "--" y lo dicen.
+ * @brief Inicio (SRS de pantalla F-01): KPI ambientales y tendencia de 24 h (módulo de control;
+ *        hoy, el simulador backend/scripts/ctrl_sim.py) y la última captura de las cámaras.
  */
 #include <stdio.h>
 #include <string.h>
@@ -12,6 +11,7 @@
 #include "ui_api.h"
 #include "ui_common.h"
 #include "ui_thumbs.h"
+#include "ui_env.h"
 
 #define KPI_N  4
 #define KPI_W  ((SCR_W - (KPI_N + 1) * TH_GAP) / KPI_N)
@@ -23,6 +23,7 @@
 static struct {
     lv_obj_t *kpi_value[KPI_N], *kpi_sub[KPI_N];
     lv_obj_t *cap_title, *cap_chip, *cap_when, *cap_thumb_icon, *cap_img;
+    ui_env_chart_t chart;
 } s_h;
 
 static void kpi(lv_obj_t *parent, int i, const char *title, const char *unit)
@@ -49,7 +50,7 @@ void scr_home_create(lv_obj_t *p)
 {
     kpi(p, 0, "Temperatura", "°C");
     kpi(p, 1, "Humedad", "%");
-    kpi(p, 2, "CO2", "ppm");
+    kpi(p, 2, "CO₂", "ppm");
     kpi(p, 3, "Luz", "");
 
     /* Tendencia (lv_chart): vacía hasta que haya módulo de control */
@@ -57,17 +58,11 @@ void scr_home_create(lv_obj_t *p)
     theme_card(chart_card);
     lv_obj_set_size(chart_card, CHART_W, ROW2_H);
     lv_obj_set_pos(chart_card, TH_GAP, ROW2_Y);
-    theme_label(chart_card, TH_FONT_SMALL, TH_MUTED, "Temperatura y humedad · 24 h");
-    lv_obj_t *chart = lv_chart_create(chart_card);
-    lv_obj_set_size(chart, CHART_W - 32, ROW2_H - 56);
-    lv_obj_align(chart, LV_ALIGN_BOTTOM_MID, 0, 0);
-    lv_obj_set_style_bg_opa(chart, LV_OPA_TRANSP, 0);
-    lv_obj_set_style_border_width(chart, 0, 0);
-    lv_obj_set_style_line_color(chart, th_color(TH_LINE), LV_PART_MAIN);
-    lv_chart_add_series(chart, th_color(TH_SERIES_1), LV_CHART_AXIS_PRIMARY_Y);
-    lv_chart_add_series(chart, th_color(TH_SERIES_2), LV_CHART_AXIS_PRIMARY_Y);
-    lv_obj_t *note = theme_label(chart, TH_FONT_SMALL, TH_MUTED, "Sin datos del módulo de control");
-    lv_obj_center(note);
+    lv_obj_t *ct = theme_label(chart_card, TH_FONT_SMALL, TH_MUTED, "");
+    lv_label_set_recolor(ct, true);
+    lv_label_set_text(ct, "#6aa3f0 Temperatura# y #79c97b humedad# · 24 h");
+    ui_env_chart_create(chart_card, CHART_W - 32, ROW2_H - 56, &s_h.chart);
+    lv_obj_align(s_h.chart.chart, LV_ALIGN_BOTTOM_MID, 0, 0);
 
     /* Última captura */
     lv_obj_t *cap = lv_obj_create(p);
@@ -119,16 +114,38 @@ static bool latest_camera(ss_node_t *out)
     return best >= 0;
 }
 
+static void refresh_env(uint32_t dirty)
+{
+    ss_env_t e;
+    bool have = state_store_env(&e);
+    bool live = have && state_store_env_live(&e);
+    char v[16];
+    ui_env_fmt(v, sizeof(v), e.temperature, 1, live);
+    lv_label_set_text(s_h.kpi_value[0], v);
+    ui_env_fmt(v, sizeof(v), e.humidity, 0, live);
+    lv_label_set_text(s_h.kpi_value[1], v);
+    ui_env_fmt(v, sizeof(v), e.co2, 0, live);
+    lv_label_set_text(s_h.kpi_value[2], v);
+    if (live && e.has_light) {
+        lv_label_set_text(s_h.kpi_value[3], e.light_on ? "ON" : "OFF");
+        lv_label_set_text_fmt(s_h.kpi_sub[3], "ciclo %s", e.light_cycle);
+    } else {
+        lv_label_set_text(s_h.kpi_value[3], "--");
+        lv_label_set_text(s_h.kpi_sub[3], have ? "sin conexión" : "sin control");
+    }
+    if (dirty & UI_DIRTY_ENV) {
+        ui_env_chart_update(&s_h.chart);
+    }
+}
+
 void scr_home_refresh(uint32_t dirty)
 {
+    if (dirty & (UI_DIRTY_ENV | UI_DIRTY_TICK)) {
+        refresh_env(dirty);
+    }
     if (!(dirty & (UI_DIRTY_NODES | UI_DIRTY_TICK | UI_DIRTY_THUMB))) {
         return;
     }
-    /* KPI: sin módulo de control todavía */
-    for (int i = 0; i < KPI_N; i++) {
-        lv_label_set_text(s_h.kpi_value[i], "--");
-    }
-    lv_label_set_text(s_h.kpi_sub[3], "sin control");
 
     ss_node_t cam;
     if (!latest_camera(&cam)) {

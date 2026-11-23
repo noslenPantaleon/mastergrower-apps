@@ -4,7 +4,9 @@
  */
 #include "state_store.h"
 
+#include <math.h>
 #include <stdlib.h>
+#include "esp_heap_caps.h"
 #include <string.h>
 #include "cJSON.h"
 #include "esp_log.h"
@@ -25,6 +27,12 @@ static struct {
     ss_event_t events[SS_MAX_EVENTS];  /**< anillo */
     int ev_head, ev_count;
     ss_conn_t conn;
+    ss_env_t env;
+    ss_sample_t *hist;      /**< anillo en PSRAM */
+    int hist_head, hist_count;
+    double acc_t, acc_h;    /**< promedio del minuto en curso */
+    int acc_n;
+    time_t acc_minute;
     ss_listener_t listeners[MAX_LISTENERS];
     int n_listeners;
 } s_ss;
@@ -45,6 +53,7 @@ void state_store_init(void)
 {
     if (!s_ss.lock) {
         s_ss.lock = xSemaphoreCreateMutex();
+        s_ss.hist = heap_caps_calloc(SS_HIST_MAX, sizeof(ss_sample_t), MALLOC_CAP_SPIRAM);
     }
 }
 
@@ -107,6 +116,113 @@ static ss_node_t *find_or_add(const char *node_id, mg_node_kind_t kind)
     return n;
 }
 
+static float get_num(const cJSON *obj, const char *key)
+{
+    const cJSON *v = cJSON_GetObjectItemCaseSensitive(obj, key);
+    return cJSON_IsNumber(v) ? (float)v->valuedouble : NAN;
+}
+
+/** Promedio por minuto de temperatura y humedad (llamar con el candado tomado). */
+static void history_add(time_t now, float t, float h)
+{
+    if (!s_ss.hist || isnan(t) || isnan(h) || now < 1700000000) {
+        return;
+    }
+    time_t minute = now / 60 * 60;
+    if (s_ss.acc_n && minute != s_ss.acc_minute) {
+        ss_sample_t *dst = &s_ss.hist[s_ss.hist_head];
+        *dst = (ss_sample_t){ s_ss.acc_minute, (float)(s_ss.acc_t / s_ss.acc_n), (float)(s_ss.acc_h / s_ss.acc_n) };
+        s_ss.hist_head = (s_ss.hist_head + 1) % SS_HIST_MAX;
+        if (s_ss.hist_count < SS_HIST_MAX) {
+            s_ss.hist_count++;
+        }
+        s_ss.acc_t = s_ss.acc_h = 0;
+        s_ss.acc_n = 0;
+    }
+    s_ss.acc_minute = minute;
+    s_ss.acc_t += t;
+    s_ss.acc_h += h;
+    s_ss.acc_n++;
+}
+
+/** Estado del módulo de control: sensores, luz y actuadores (llamar con el candado tomado). */
+static void apply_env(const char *node_id, const cJSON *root, const char *state)
+{
+    ss_env_t *e = &s_ss.env;
+    if (e->valid && strcmp(e->node_id, node_id) != 0) {
+        return;  // por ahora la pantalla muestra un solo módulo de control (el primero)
+    }
+    e->valid = true;
+    strlcpy(e->node_id, node_id, sizeof(e->node_id));
+    strlcpy(e->node_state, state, sizeof(e->node_state));
+    e->rx_us = esp_timer_get_time();
+    if (strcmp(state, "offline") == 0) {
+        return;  // el LWT no trae lecturas: quedan las últimas (marcadas como no vigentes)
+    }
+    copy_str(e->grow_mode, sizeof(e->grow_mode), root, "grow_mode");
+    e->ts = get_time(root, "ts");
+    const cJSON *sn = cJSON_GetObjectItemCaseSensitive(root, "sensors");
+    e->temperature = get_num(sn, "temperature");
+    e->humidity = get_num(sn, "humidity");
+    e->co2 = get_num(sn, "co2");
+    e->lux = get_num(sn, "lux");
+    e->substrate_moisture = get_num(sn, "substrate_moisture");
+    e->substrate_ec = get_num(sn, "substrate_ec");
+    e->ph = get_num(sn, "ph");
+    e->ec = get_num(sn, "ec");
+    e->dissolved_oxygen = get_num(sn, "dissolved_oxygen");
+    e->water_temperature = get_num(sn, "water_temperature");
+    e->reservoir_level = get_num(sn, "reservoir_level");
+    const cJSON *light = cJSON_GetObjectItemCaseSensitive(root, "light");
+    e->has_light = cJSON_IsObject(light);
+    e->light_on = cJSON_IsTrue(cJSON_GetObjectItemCaseSensitive(light, "on"));
+    copy_str(e->light_cycle, sizeof(e->light_cycle), light, "cycle");
+    e->n_act = 0;
+    const cJSON *a;
+    cJSON_ArrayForEach(a, cJSON_GetObjectItemCaseSensitive(root, "actuators")) {
+        const char *id = cJSON_GetStringValue(cJSON_GetObjectItemCaseSensitive(a, "id"));
+        const char *st = cJSON_GetStringValue(cJSON_GetObjectItemCaseSensitive(a, "state"));
+        const char *md = cJSON_GetStringValue(cJSON_GetObjectItemCaseSensitive(a, "mode"));
+        if (id && e->n_act < SS_MAX_ACTUATORS) {
+            ss_actuator_t *x = &e->act[e->n_act++];
+            strlcpy(x->id, id, sizeof(x->id));
+            x->on = st && strcmp(st, "on") == 0;
+            x->manual = md && strcmp(md, "manual") == 0;
+        }
+    }
+    history_add(e->ts ? e->ts : time(NULL), e->temperature, e->humidity);
+}
+
+bool state_store_env(ss_env_t *out)
+{
+    xSemaphoreTake(s_ss.lock, portMAX_DELAY);
+    *out = s_ss.env;
+    xSemaphoreGive(s_ss.lock);
+    return out->valid;
+}
+
+bool state_store_env_live(const ss_env_t *e)
+{
+    if (!e->valid || strcmp(e->node_state, "offline") == 0) {
+        return false;
+    }
+    int64_t age = mg_time_is_valid() && e->ts ? (int64_t)time(NULL) - e->ts
+                                               : (esp_timer_get_time() - e->rx_us) / 1000000;
+    return age <= CONFIG_MG_STALE_AFTER_S;
+}
+
+int state_store_env_history(ss_sample_t *out, int max)
+{
+    xSemaphoreTake(s_ss.lock, portMAX_DELAY);
+    int n = s_ss.hist_count < max ? s_ss.hist_count : max;
+    int start = (s_ss.hist_head - n + SS_HIST_MAX) % SS_HIST_MAX;  // los n más nuevos
+    for (int i = 0; i < n; i++) {
+        out[i] = s_ss.hist[(start + i) % SS_HIST_MAX];
+    }
+    xSemaphoreGive(s_ss.lock);
+    return n;
+}
+
 bool state_store_apply_status(mg_node_kind_t kind, const char *node_id, const char *json, size_t len)
 {
     cJSON *root = cJSON_ParseWithLength(json, len);
@@ -138,10 +254,17 @@ bool state_store_apply_status(mg_node_kind_t kind, const char *node_id, const ch
     } else {
         ESP_LOGW(TAG, "Tabla de nodos llena: se ignora %s", node_id);
     }
+    bool env = kind == MG_NODE_CTRL;
+    if (env) {
+        apply_env(node_id, root, state->valuestring);
+    }
     xSemaphoreGive(s_ss.lock);
     cJSON_Delete(root);
     if (changed) {
         notify(SS_CHANGE_NODE, node_id);
+    }
+    if (env) {
+        notify(SS_CHANGE_ENV, node_id);
     }
     return changed;
 }

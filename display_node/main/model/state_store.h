@@ -46,6 +46,39 @@ typedef struct {
     char detail[96];
 } ss_event_t;
 
+/* ---- Módulo de control (contract/mqtt/schemas/ctrl_state.schema.json, provisional) ---- */
+
+#define SS_MAX_ACTUATORS 8
+#define SS_HIST_MAX      1440   /**< 24 h a un punto por minuto (en PSRAM) */
+
+typedef struct {
+    char id[16];          /**< water_pump, air_pump, fan, light, ... */
+    bool on;
+    bool manual;
+} ss_actuator_t;
+
+/** Último estado del (primer) módulo de control. Los valores sin dato son NAN. */
+typedef struct {
+    bool valid;           /**< llegó al menos un state */
+    char node_id[SS_ID_LEN];
+    char node_state[16];
+    char grow_mode[12];   /**< substrate | coco_coir | dwc */
+    float temperature, humidity, co2, lux;
+    float substrate_moisture, substrate_ec, ph, ec, dissolved_oxygen, water_temperature, reservoir_level;
+    bool has_light, light_on;
+    char light_cycle[8];
+    ss_actuator_t act[SS_MAX_ACTUATORS];
+    int n_act;
+    time_t ts;
+    int64_t rx_us;
+} ss_env_t;
+
+/** Promedio de un minuto (historial para la tendencia de 24 h). */
+typedef struct {
+    time_t t;
+    float temperature, humidity;
+} ss_sample_t;
+
 typedef struct {
     bool wifi;
     bool mqtt;
@@ -58,6 +91,7 @@ typedef enum {
     SS_CHANGE_CONN,   /**< cambió WiFi, MQTT o la hora */
     SS_CHANGE_CMD,    /**< cambió el estado de un comando enviado a node_id (command_publisher) */
     SS_CHANGE_THUMB,  /**< hay miniatura nueva de node_id (thumb_service) */
+    SS_CHANGE_ENV,    /**< llegó un state del módulo de control */
 } ss_change_t;
 
 typedef void (*ss_listener_t)(ss_change_t change, const char *node_id);
@@ -72,6 +106,15 @@ void state_store_notify(ss_change_t change, const char *node_id);
 
 /** @brief Aplica un status (cam/disp) o state (ctrl). Devuelve false si el JSON no sirve. */
 bool state_store_apply_status(mg_node_kind_t kind, const char *node_id, const char *json, size_t len);
+
+/** @brief Copia el estado del módulo de control. false si nunca llegó uno. */
+bool state_store_env(ss_env_t *out);
+
+/** @brief true si el control está en línea y su dato no es antiguo. */
+bool state_store_env_live(const ss_env_t *e);
+
+/** @brief Historial de temperatura y humedad, del más viejo al más nuevo. Devuelve cuántos. */
+int state_store_env_history(ss_sample_t *out, int max);
 
 /** @brief Agrega un evento al historial (el más nuevo primero). */
 bool state_store_apply_event(const char *node_id, const char *json, size_t len);

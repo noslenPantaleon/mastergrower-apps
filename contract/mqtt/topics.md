@@ -9,7 +9,7 @@ con `kind` ∈ `cam`, `ctrl`, `disp`.
 | `growlab/cam/{id}/event` | nodo cámara | pantalla, API | 1 | no | `schemas/cam_event.schema.json` |
 | `growlab/cam/{id}/cmd` | pantalla, API | nodo cámara | 1 | no | `schemas/cmd.schema.json` |
 | `growlab/cam/{id}/cmd/ack` | nodo cámara | emisor del comando (la API escucha los de `start_stream`) | 1 | no | `schemas/cmd_ack.schema.json` |
-| `growlab/ctrl/{id}/state` | módulo de control | pantalla, API | 1 | sí | *(provisional, §4.4)* |
+| `growlab/ctrl/{id}/state` | módulo de control (hoy: simulador) | pantalla, API | 1 | sí | `schemas/ctrl_state.schema.json` *(provisional, §4.4)* |
 | `growlab/ctrl/{id}/event` | módulo de control | pantalla, API | 1 | no | *(provisional)* |
 | `growlab/ctrl/{id}/cmd` | pantalla | módulo de control | 1 | no | `schemas/cmd.schema.json` |
 | `growlab/ctrl/{id}/cmd/ack` | módulo de control | pantalla | 1 | no | `schemas/cmd_ack.schema.json` |
