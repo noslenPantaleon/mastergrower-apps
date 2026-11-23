@@ -20,7 +20,7 @@ sale de `light_cycle` de la zona si está definido ([`zones.md`](zones.md)). Par
 | `jpeg_quality` | 12 | 4–63 (menor = mejor calidad) |
 | `hsv_suspicion_threshold` | 0.35 | 0–1 |
 | `min_trigger_interval_s` | 5 | anti-duplicado de disparos |
-| `stream_resolution_max` · `stream_fps_max` · `stream_ttl_max_s` | `vga` · 10 · 600 | vista en vivo (C8) |
+| `stream_resolution_max` · `stream_fps_max` · `stream_ttl_max_s` | `vga` · 10 · 600 | vista en vivo |
 
 ### Versión
 

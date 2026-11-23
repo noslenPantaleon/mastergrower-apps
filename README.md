@@ -3,13 +3,13 @@
 Monorepo con los módulos del sistema. Plan completo en [docs/plan-desarrollo.md](docs/plan-desarrollo.md);
 documentos de especificación en [references/](references/).
 
-| Carpeta | Qué es | Estado |
-|---|---|---|
-| [contract/](contract/) | Fuente ejecutable del contrato (OpenAPI, temas MQTT y JSON Schema) | v1 + OTA |
-| [components/](components/) | Componentes ESP-IDF compartidos (`mg_wifi`, `mg_mqtt`, `mg_time`, `mg_contract`, `mg_api`, `mg_ota`) | estables |
-| [camera_node/](camera_node/) | Firmware del nodo de cámara — Seeed XIAO ESP32-S3 Sense (OV3660) | C1–C8 + OTA |
-| [display_node/](display_node/) | Firmware del dashboard — Waveshare ESP32-S3-Touch-LCD-4.3B | D0–D6 (falta LVGL Pro) |
-| [backend/](backend/) | API FastAPI + Mosquitto + PostgreSQL (docker compose) | B0–B6 + OTA |
+| Carpeta | Qué es |
+|---|---|
+| [contract/](contract/) | Fuente ejecutable del contrato (OpenAPI, temas MQTT y JSON Schema) |
+| [components/](components/) | Componentes ESP-IDF compartidos (`mg_wifi`, `mg_mqtt`, `mg_time`, `mg_contract`, `mg_api`, `mg_ota`, `mg_settings`, `mg_portal`) |
+| [camera_node/](camera_node/) | Firmware del nodo de cámara — Seeed XIAO ESP32-S3 Sense (OV3660) |
+| [display_node/](display_node/) | Firmware del dashboard — Waveshare ESP32-S3-Touch-LCD-4.3B |
+| [backend/](backend/) | API FastAPI + Mosquitto + PostgreSQL (docker compose) |
 
 **Guía paso a paso para usar y demostrar el sistema:** [docs/guia-de-uso.md](docs/guia-de-uso.md).
 
@@ -65,12 +65,18 @@ idf.py build flash monitor
 Con `CONFIG_MG_DEBUG_HTTP=y` (por defecto en desarrollo), el log muestra
 `Vista previa: http://<ip>/`. Desde el navegador se pueden capturar imágenes y probar la
 resolución, la calidad JPEG y la orientación.
-Endpoints: `/capture.jpg`, `/status`, `/control?res=SVGA&quality=12&vflip=1&hmirror=0`.
+Endpoints: `/capture.jpg`, `/status`, `/control?res=SVGA&quality=12&vflip=1&hmirror=0`
+(también `brightness`, `contrast` y `saturation`, de −2 a 2, hasta el próximo reinicio).
 
 Opciones propias en `idf.py menuconfig`:
 - **MasterGrow - Nodo de cámara**: `node_id`, resolución y calidad, autoprueba, servidor de depuración.
-- **MasterGrow - Cámara (HAL)**: sensor (`xiao-ov3660` / `xiao-ov5640`), XCLK, framebuffers, orientación.
+- **MasterGrow - Cámara (HAL)**: sensor (`xiao-ov3660` / `xiao-ov5640`), XCLK, framebuffers,
+  orientación, brillo/contraste/saturación.
 - **MasterGrow - WiFi**: SSID, contraseña, backoff de reconexión.
+
+La red y el servidor compilados son solo los valores iniciales: se cambian sin recompilar desde
+el portal de configuración de la cámara (botón BOOT 5 s) o desde la pantalla (ver
+[docs/guia-de-uso.md](docs/guia-de-uso.md)).
 
 ## Convenciones
 
@@ -88,8 +94,9 @@ Waveshare ESP32-S3-Touch-LCD-4.3B (800×480, táctil GT911, LVGL 9).
 
 ```sh
 cd display_node
+cp sdkconfig.defaults.local.example sdkconfig.defaults.local   # WiFi + broker + token de usuario
 idf.py -p /dev/cu.usbmodem1101 build flash
 ```
 
-D0: pantalla de prueba con un botón táctil, una barra animada (para ver tearing) y el monitor de
-fps de LVGL en la esquina.
+Muestra el estado de los nodos, las capturas y los eventos; permite capturar, ver el video en
+vivo, cambiar la configuración de las cámaras, actualizar firmware y cambiar la red y el servidor.

@@ -1,4 +1,4 @@
-# API HTTP — Firmware y OTA (plan C9 / D6)
+# API HTTP — Firmware y OTA
 
 Base: `/api/v1`. Autenticación y errores como en [`captures.md`](captures.md).
 
